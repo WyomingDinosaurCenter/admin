@@ -315,7 +315,7 @@ const SUPABASE_URL    = 'https://xgvulkoqtqvgyprggvay.supabase.co';
 const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhndnVsa29xdHF2Z3lwcmdndmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MjYxMjMsImV4cCI6MjA2MTEwMjEyM30.QMpHHhfcV4NqEGOcbQWWiGPo_DF3TRBFnBHJy1zJUgw';
 const FUNCTION_URL    = `${SUPABASE_URL}/functions/v1/admin-users`;
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ── STATE ─────────────────────────────────────────────────────
 let currentUser   = null;
@@ -324,16 +324,16 @@ let pendingAction = null;
 let roleTargetId  = null;
 
 // ── INIT ──────────────────────────────────────────────────────
-supabase.auth.onAuthStateChange(async (event, session) => {
+db.auth.onAuthStateChange(async (event, session) => {
   currentSession = session;
   if (session?.user) {
     currentUser = session.user;
     // Verify admin role
-    const { data: profile } = await supabase
+    const { data: profile } = await db
       .from('profiles').select('role,full_name').eq('id', currentUser.id).single();
     if (profile?.role !== 'admin') {
       showToast('Access denied — admin role required', true);
-      await supabase.auth.signOut();
+      await db.auth.signOut();
       return;
     }
     document.getElementById('header-user').textContent =
@@ -361,7 +361,7 @@ async function doLogin() {
   btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled  = true;
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await db.auth.signInWithPassword({ email, password });
 
   btn.textContent = 'Sign In';
   btn.disabled    = false;
@@ -373,7 +373,7 @@ async function doLogin() {
 }
 
 async function doSignOut() {
-  await supabase.auth.signOut();
+  await db.auth.signOut();
 }
 
 // ── LOAD USERS ────────────────────────────────────────────────
@@ -382,7 +382,7 @@ async function loadUsers() {
   list.innerHTML = '<div class="empty-state">Loading…</div>';
 
   // Get profiles + banned status via admin function
-  const { data: profiles, error } = await supabase
+  const { data: profiles, error } = await db
     .from('profiles')
     .select('id, email, full_name, role, created_at')
     .order('created_at');
