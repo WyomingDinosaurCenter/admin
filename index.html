@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>WDC Admin</title>
+<link rel="manifest" href="manifest.json">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --primary:    #4A3728;
+    --gold:       #A07840;
+    --bg:         #FAF7F2;
+    --surface:    #FFFFFF;
+    --border:     #E0D5C5;
+    --text:       #2C2018;
+    --text-dim:   #8A7060;
+    --success:    #276C27;
+    --danger:     #C02020;
+    --warning:    #C06C00;
+    --radius:     10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── Header ── */
+  .app-header {
+    background: var(--primary); color: white;
+    padding: 12px 16px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 100;
+  }
+  .app-header h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: .02em; }
+  .app-header .subtitle { font-size: .75rem; opacity: .7; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .user-chip { font-size: .75rem; opacity: .75; }
+
+  /* ── Layout ── */
+  .container { max-width: 760px; margin: 0 auto; padding: 16px; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .card-header {
+    background: var(--primary); color: white;
+    padding: 10px 14px; font-size: .85rem; font-weight: 600;
+    letter-spacing: .03em;
+  }
+  .card-body { padding: 14px; }
+
+  /* ── User rows ── */
+  .user-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .user-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--primary); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .85rem; font-weight: 700; flex-shrink: 0;
+  }
+  .user-avatar.inactive { background: #ccc; }
+  .user-info { flex: 1; min-width: 0; }
+  .user-name { font-size: .9rem; font-weight: 600; white-space: nowrap;
+               overflow: hidden; text-overflow: ellipsis; }
+  .user-email { font-size: .78rem; color: var(--text-dim);
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+  /* ── Role badge ── */
+  .role-badge {
+    font-size: .7rem; font-weight: 600; padding: 2px 8px;
+    border-radius: 20px; text-transform: uppercase; letter-spacing: .04em;
+    white-space: nowrap;
+  }
+  .role-admin      { background: #3D2B1A22; color: var(--primary); }
+  .role-management { background: #A0784022; color: var(--gold); }
+  .role-staff      { background: #276C2722; color: var(--success); }
+  .role-registrar  { background: #1A4A7822; color: #1A4A78; }
+  .role-intern     { background: #C06C0022; color: var(--warning); }
+  .role-researcher { background: #60106022; color: #601060; }
+  .badge-inactive  { background: #ccc2; color: #888; }
+
+  /* ── Buttons ── */
+  .btn {
+    padding: 7px 14px; border-radius: 8px; border: none;
+    font-size: .82rem; font-weight: 600; cursor: pointer;
+    transition: opacity .15s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-primary   { background: var(--primary); color: white; }
+  .btn-gold      { background: var(--gold); color: white; }
+  .btn-ghost     { background: transparent; color: var(--text-dim);
+                   border: 1px solid var(--border); }
+  .btn-danger    { background: var(--danger); color: white; }
+  .btn-sm        { padding: 4px 10px; font-size: .75rem; }
+  .btn-icon      { padding: 5px 8px; font-size: .85rem; }
+
+  /* ── Forms ── */
+  .form-group { margin-bottom: 12px; }
+  .form-label { display: block; font-size: .8rem; font-weight: 600;
+                color: var(--text-dim); margin-bottom: 4px; }
+  .form-input, .form-select {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: .9rem; background: var(--surface);
+    color: var(--text); outline: none;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--gold); }
+  .form-row { display: flex; gap: 10px; }
+  .form-row .form-group { flex: 1; }
+
+  /* ── Login ── */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--primary);
+  }
+  .login-box {
+    background: white; border-radius: 14px; padding: 32px;
+    width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,.3);
+  }
+  .login-logo { text-align: center; margin-bottom: 24px; }
+  .login-logo .org { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
+  .login-logo .app { font-size: .85rem; color: var(--text-dim); margin-top: 2px; }
+  .login-error { background: #fee; border: 1px solid #fcc; color: var(--danger);
+                 padding: 8px 12px; border-radius: 8px; font-size: .82rem;
+                 margin-bottom: 12px; display: none; }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #222; color: white; padding: 10px 20px; border-radius: 8px;
+    font-size: .85rem; opacity: 0; transition: opacity .3s; pointer-events: none;
+    z-index: 999; white-space: nowrap;
+  }
+  #toast.show { opacity: 1; }
+  #toast.error { background: var(--danger); }
+
+  /* ── Modal ── */
+  .modal-bg {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.5); z-index: 200;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: white; border-radius: 14px; width: 100%; max-width: 420px;
+    overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,.3);
+  }
+  .modal-header {
+    background: var(--primary); color: white;
+    padding: 14px 16px; font-size: .95rem; font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-body { padding: 16px; }
+  .modal-footer { padding: 12px 16px; display: flex; gap: 8px; justify-content: flex-end;
+                  border-top: 1px solid var(--border); }
+  .modal-close { background: none; border: none; color: white;
+                 font-size: 1.2rem; cursor: pointer; opacity: .7; }
+  .modal-close:hover { opacity: 1; }
+
+  /* ── Confirm dialog ── */
+  .confirm-text { font-size: .9rem; line-height: 1.5; margin-bottom: 4px; }
+  .confirm-sub  { font-size: .8rem; color: var(--text-dim); }
+
+  /* ── Misc ── */
+  .section-title { font-size: .95rem; font-weight: 700; color: var(--primary);
+                   margin-bottom: 12px; display: flex; justify-content: space-between;
+                   align-items: center; }
+  .empty-state { text-align: center; color: var(--text-dim);
+                 font-size: .85rem; padding: 24px 0; }
+  .spinner { display: inline-block; width: 16px; height: 16px;
+             border: 2px solid rgba(255,255,255,.4); border-top-color: white;
+             border-radius: 50%; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="org">Wyoming Dinosaur Center</div>
+      <div class="app">Admin Console</div>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" type="email" id="login-email" placeholder="you@example.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" type="password" id="login-password" placeholder="••••••••"
+             onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="doLogin()" id="login-btn">
+      Sign In
+    </button>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="app-screen" style="display:none">
+
+  <div class="app-header">
+    <div>
+      <div class="app-header h1" style="font-size:1.1rem;font-weight:600">WDC Admin</div>
+      <div class="subtitle">User Management</div>
+    </div>
+    <div class="header-right">
+      <span class="user-chip" id="header-user"></span>
+      <button class="btn btn-ghost btn-sm" onclick="doSignOut()">Sign out</button>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- Invite new user -->
+    <div class="card">
+      <div class="card-header">Invite New User</div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email address</label>
+            <input class="form-input" type="email" id="invite-email" placeholder="name@example.com">
+          </div>
+          <div class="form-group" style="max-width:160px">
+            <label class="form-label">Role</label>
+            <select class="form-select" id="invite-role">
+              <option value="intern">Intern</option>
+              <option value="staff">Staff</option>
+              <option value="registrar">Registrar</option>
+              <option value="management">Management</option>
+              <option value="researcher">Researcher</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-gold" id="invite-btn" onclick="doInvite()">Send Invite</button>
+      </div>
+    </div>
+
+    <!-- User list -->
+    <div class="card">
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+        <span>Users</span>
+        <button class="btn btn-ghost btn-sm" style="color:white;border-color:rgba(255,255,255,.3)"
+                onclick="loadUsers()">↻ Refresh</button>
+      </div>
+      <div class="card-body" id="user-list">
+        <div class="empty-state">Loading…</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── ROLE MODAL ── -->
+<div class="modal-bg" id="role-modal">
+  <div class="modal">
+    <div class="modal-header">
+      Change Role
+      <button class="modal-close" onclick="closeModal('role-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">User</label>
+        <div id="role-modal-user" style="font-weight:600;font-size:.9rem"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">New Role</label>
+        <select class="form-select" id="role-modal-select">
+          <option value="intern">Intern</option>
+          <option value="staff">Staff</option>
+          <option value="registrar">Registrar</option>
+          <option value="management">Management</option>
+          <option value="researcher">Researcher</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('role-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doRoleUpdate()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIRM MODAL ── -->
+<div class="modal-bg" id="confirm-modal">
+  <div class="modal">
+    <div class="modal-header" id="confirm-title">Confirm</div>
+    <div class="modal-body">
+      <div class="confirm-text" id="confirm-text"></div>
+      <div class="confirm-sub"  id="confirm-sub"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('confirm-modal')">Cancel</button>
+      <button class="btn btn-danger" id="confirm-ok-btn" onclick="confirmAction()">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────────
+const SUPABASE_URL    = 'https://xgvulkoqtqvgyprggvay.supabase.co';
+const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhndnVsa29xdHF2Z3lwcmdndmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU1MjYxMjMsImV4cCI6MjA2MTEwMjEyM30.QMpHHhfcV4NqEGOcbQWWiGPo_DF3TRBFnBHJy1zJUgw';
+const FUNCTION_URL    = `${SUPABASE_URL}/functions/v1/admin-users`;
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ── STATE ─────────────────────────────────────────────────────
+let currentUser   = null;
+let currentSession= null;
+let pendingAction = null;
+let roleTargetId  = null;
+
+// ── INIT ──────────────────────────────────────────────────────
+supabase.auth.onAuthStateChange(async (event, session) => {
+  currentSession = session;
+  if (session?.user) {
+    currentUser = session.user;
+    // Verify admin role
+    const { data: profile } = await supabase
+      .from('profiles').select('role,full_name').eq('id', currentUser.id).single();
+    if (profile?.role !== 'admin') {
+      showToast('Access denied — admin role required', true);
+      await supabase.auth.signOut();
+      return;
+    }
+    document.getElementById('header-user').textContent =
+      profile.full_name || currentUser.email;
+    showApp();
+    loadUsers();
+  } else {
+    showLogin();
+  }
+});
+
+function showApp()   { document.getElementById('login-screen').style.display = 'none';
+                       document.getElementById('app-screen').style.display = 'block'; }
+function showLogin() { document.getElementById('login-screen').style.display = 'flex';
+                       document.getElementById('app-screen').style.display = 'none'; }
+
+// ── AUTH ──────────────────────────────────────────────────────
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn      = document.getElementById('login-btn');
+  const errEl    = document.getElementById('login-error');
+
+  errEl.style.display = 'none';
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled  = true;
+
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+  btn.textContent = 'Sign In';
+  btn.disabled    = false;
+
+  if (error) {
+    errEl.textContent = error.message;
+    errEl.style.display = 'block';
+  }
+}
+
+async function doSignOut() {
+  await supabase.auth.signOut();
+}
+
+// ── LOAD USERS ────────────────────────────────────────────────
+async function loadUsers() {
+  const list = document.getElementById('user-list');
+  list.innerHTML = '<div class="empty-state">Loading…</div>';
+
+  // Get profiles + banned status via admin function
+  const { data: profiles, error } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, role, created_at')
+    .order('created_at');
+
+  if (error) { list.innerHTML = `<div class="empty-state">${error.message}</div>`; return; }
+  if (!profiles.length) { list.innerHTML = '<div class="empty-state">No users yet.</div>'; return; }
+
+  list.innerHTML = profiles.map(p => {
+    const initials = (p.full_name || p.email).slice(0,2).toUpperCase();
+    const isMe     = p.id === currentUser?.id;
+    return `
+    <div class="user-row" id="user-row-${p.id}">
+      <div class="user-avatar">${initials}</div>
+      <div class="user-info">
+        <div class="user-name">${p.full_name || '—'} ${isMe ? '<span style="font-size:.7rem;color:var(--text-dim)">(you)</span>' : ''}</div>
+        <div class="user-email">${p.email}</div>
+      </div>
+      <span class="role-badge role-${p.role}">${p.role}</span>
+      <div class="user-actions">
+        <button class="btn btn-ghost btn-sm btn-icon" title="Change role"
+                onclick="openRoleModal('${p.id}','${p.email}','${p.role}')">✎</button>
+        <button class="btn btn-ghost btn-sm btn-icon" title="Send password reset"
+                onclick="confirmReset('${p.email}')">🔑</button>
+        ${!isMe ? `<button class="btn btn-ghost btn-sm btn-icon" title="Deactivate"
+                onclick="confirmDeactivate('${p.id}','${p.email}')">⊘</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── INVITE ────────────────────────────────────────────────────
+async function doInvite() {
+  const email = document.getElementById('invite-email').value.trim();
+  const role  = document.getElementById('invite-role').value;
+  const btn   = document.getElementById('invite-btn');
+
+  if (!email) { showToast('Enter an email address', true); return; }
+
+  btn.innerHTML = '<span class="spinner"></span> Sending…';
+  btn.disabled  = true;
+
+  const res = await callFunction({ action: 'invite', email, role });
+
+  btn.textContent = 'Send Invite';
+  btn.disabled    = false;
+
+  if (res.error) { showToast(res.error, true); return; }
+
+  showToast(`Invite sent to ${email}`);
+  document.getElementById('invite-email').value = '';
+  setTimeout(loadUsers, 1500);
+}
+
+// ── ROLE MODAL ────────────────────────────────────────────────
+function openRoleModal(userId, email, currentRole) {
+  roleTargetId = userId;
+  document.getElementById('role-modal-user').textContent = email;
+  document.getElementById('role-modal-select').value = currentRole;
+  openModal('role-modal');
+}
+
+async function doRoleUpdate() {
+  const role = document.getElementById('role-modal-select').value;
+  const res  = await callFunction({ action: 'update_role', userId: roleTargetId, role });
+  if (res.error) { showToast(res.error, true); return; }
+  showToast('Role updated');
+  closeModal('role-modal');
+  loadUsers();
+}
+
+// ── CONFIRM HELPERS ───────────────────────────────────────────
+function confirmReset(email) {
+  document.getElementById('confirm-title').textContent = 'Send Password Reset';
+  document.getElementById('confirm-text').textContent  = `Send a password reset email to ${email}?`;
+  document.getElementById('confirm-sub').textContent   = 'They will receive a link to set a new password.';
+  document.getElementById('confirm-ok-btn').textContent= 'Send Reset Email';
+  document.getElementById('confirm-ok-btn').className  = 'btn btn-gold';
+  pendingAction = async () => {
+    const res = await callFunction({ action: 'reset_password', email });
+    if (res.error) { showToast(res.error, true); return; }
+    showToast(`Reset email sent to ${email}`);
+  };
+  openModal('confirm-modal');
+}
+
+function confirmDeactivate(userId, email) {
+  document.getElementById('confirm-title').textContent = 'Deactivate User';
+  document.getElementById('confirm-text').textContent  = `Deactivate ${email}?`;
+  document.getElementById('confirm-sub').textContent   = 'They will be immediately locked out of all WDC apps.';
+  document.getElementById('confirm-ok-btn').textContent= 'Deactivate';
+  document.getElementById('confirm-ok-btn').className  = 'btn btn-danger';
+  pendingAction = async () => {
+    const res = await callFunction({ action: 'deactivate', userId });
+    if (res.error) { showToast(res.error, true); return; }
+    showToast(`${email} deactivated`);
+    loadUsers();
+  };
+  openModal('confirm-modal');
+}
+
+async function confirmAction() {
+  closeModal('confirm-modal');
+  if (pendingAction) { await pendingAction(); pendingAction = null; }
+}
+
+// ── EDGE FUNCTION CALLER ──────────────────────────────────────
+async function callFunction(body) {
+  try {
+    const res = await fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${currentSession.access_token}`
+      },
+      body: JSON.stringify(body)
+    });
+    return await res.json();
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+// ── MODAL / TOAST UTILS ───────────────────────────────────────
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'show' + (isError ? ' error' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// ── SERVICE WORKER ────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>

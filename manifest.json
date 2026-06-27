@@ -1,0 +1,12 @@
+{
+  "name": "WDC Admin",
+  "short_name": "WDC Admin",
+  "description": "Wyoming Dinosaur Center — User Management Console",
+  "start_url": "/wdc-admin/index.html",
+  "display": "standalone",
+  "background_color": "#4A3728",
+  "theme_color": "#4A3728",
+  "icons": [
+    { "src": "../wdc-field/WDC_fieldApp.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
