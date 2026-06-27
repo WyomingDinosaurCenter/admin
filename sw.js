@@ -1,4 +1,4 @@
-const CACHE_NAME = 'wdc-admin-v2';
+const CACHE_NAME = 'wdc-admin-v3';
 
 self.addEventListener('install', event => {
   event.waitUntil(

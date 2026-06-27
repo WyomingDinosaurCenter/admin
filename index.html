@@ -307,6 +307,29 @@
   </div>
 </div>
 
+<!-- ── INVITE LINK MODAL ── -->
+<div class="modal-bg" id="invite-link-modal">
+  <div class="modal">
+    <div class="modal-header">
+      Invite Link Created
+      <button class="modal-close" onclick="closeModal('invite-link-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.85rem;margin-bottom:10px">
+        Send this link to <strong id="invite-link-email"></strong>. It expires in 24 hours.
+      </p>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="form-input" id="invite-link-url" readonly
+               style="font-size:.75rem;background:#f5f5f5">
+        <button class="btn btn-gold btn-sm" onclick="copyInviteLink()">Copy</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal('invite-link-modal')">Done</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -431,9 +454,14 @@ async function doInvite() {
 
   if (res.error) { showToast(res.error, true); return; }
 
-  showToast(`Invite sent to ${email}`);
   document.getElementById('invite-email').value = '';
   setTimeout(loadUsers, 1500);
+
+  if (res.invite_link) {
+    showInviteLink(email, res.invite_link);
+  } else {
+    showToast(`Invite created for ${email}`);
+  }
 }
 
 // ── ROLE MODAL ────────────────────────────────────────────────
@@ -515,6 +543,24 @@ function showToast(msg, isError = false) {
   t.className   = 'show' + (isError ? ' error' : '');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => { t.className = ''; }, 3000);
+}
+
+// ── INVITE LINK ───────────────────────────────────────────────
+function showInviteLink(email, link) {
+  document.getElementById('invite-link-email').textContent = email;
+  document.getElementById('invite-link-url').value = link;
+  openModal('invite-link-modal');
+}
+
+function copyInviteLink() {
+  const input = document.getElementById('invite-link-url');
+  navigator.clipboard.writeText(input.value).then(() => {
+    showToast('Link copied to clipboard');
+  }).catch(() => {
+    input.select();
+    document.execCommand('copy');
+    showToast('Link copied');
+  });
 }
 
 // ── SERVICE WORKER ────────────────────────────────────────────
