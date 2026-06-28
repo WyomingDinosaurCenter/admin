@@ -482,9 +482,7 @@ const SUPABASE_URL  = 'https://xgvulkoqtqvgyprggvay.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhndnVsa29xdHF2Z3lwcmdndmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MjEwNTUsImV4cCI6MjA5Nzk5NzA1NX0.-918Ro2JqRI251SgZPpMmpi0gfxrM6jUSGuXz7tBYVE';
 const FUNCTION_URL  = `${SUPABASE_URL}/functions/v1/admin-users`;
 
-console.log('Supabase available:', typeof window.supabase);
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-console.log('db client created:', typeof db);
 
 // ── STATE ─────────────────────────────────────────────────────
 let currentUser    = null;
@@ -535,20 +533,10 @@ async function doLogin() {
   errEl.style.display = 'none';
   btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled  = true;
-  try {
-    console.log('Attempting sign in for:', email);
-    const { data, error } = await db.auth.signInWithPassword({ email, password });
-    console.log('Sign in result — data:', data, 'error:', error);
-    btn.textContent = 'Sign In';
-    btn.disabled    = false;
-    if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; }
-  } catch(e) {
-    console.error('Sign in exception:', e);
-    btn.textContent = 'Sign In';
-    btn.disabled    = false;
-    errEl.textContent = e.message || 'Unknown error';
-    errEl.style.display = 'block';
-  }
+  const { error } = await db.auth.signInWithPassword({ email, password });
+  btn.textContent = 'Sign In';
+  btn.disabled    = false;
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; }
 }
 
 async function doSignOut() { await db.auth.signOut(); }
