@@ -199,11 +199,12 @@ const ADMIN_URL     = 'https://wyomingdinosaurcenter.github.io/admin/';
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-let currentUser = null;
+let currentUser    = null;
+let currentToken   = null;  // access token kept for direct API calls
 
 // ── INIT ──────────────────────────────────────────────────────
 async function init() {
-  // Parse access_token / refresh_token from URL hash (magic link)
+  // Parse tokens from URL hash (magic link)
   const hash = window.location.hash.substring(1);
   const params = new URLSearchParams(hash);
   const accessToken  = params.get('access_token');
@@ -212,27 +213,24 @@ async function init() {
   let session = null;
 
   if (accessToken && refreshToken) {
-    // Explicitly load the session from the magic link tokens
     const { data, error } = await db.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken
     });
     if (!error) session = data.session;
   } else {
-    // Fall back to stored session (e.g. page refresh)
     const { data } = await db.auth.getSession();
     session = data.session;
   }
 
   if (session?.user) {
-    currentUser = session.user;
-    // Clear the hash so the token isn't reused on refresh
+    currentUser  = session.user;
+    currentToken = session.access_token;
     history.replaceState(null, '', window.location.pathname);
 
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('main-card').style.display = 'block';
 
-    // Pre-fill name if we have something real
     const meta = session.user.user_metadata;
     if (meta?.full_name && meta.full_name !== session.user.email) {
       document.getElementById('full-name').value = meta.full_name;
@@ -298,19 +296,42 @@ async function doSubmit() {
     ? [street, `${city}${city && state ? ', ' : ''}${state} ${zip}`.trim()].filter(Boolean).join('\n')
     : '';
 
-  // 1. Set password + user metadata
-  const { error: updateErr } = await db.auth.updateUser({
-    password,
-    data: { full_name: fullName, phone, mailing_address: mailingAddress }
+  // 1. Set password + user metadata via direct REST call (bypasses client session issues)
+  const authRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${currentToken}`,
+      'apikey': SUPABASE_ANON
+    },
+    body: JSON.stringify({
+      password,
+      data: { full_name: fullName, phone, mailing_address: mailingAddress }
+    })
   });
-  if (updateErr) { showError(updateErr.message); reset(); return; }
+  if (!authRes.ok) {
+    const e = await authRes.json().catch(() => ({}));
+    showError(e.msg || e.message || `Auth error ${authRes.status}`);
+    reset(); return;
+  }
 
-  // 2. Update profile
-  const { error: profileErr } = await db
-    .from('profiles')
-    .update({ full_name: fullName, phone, mailing_address: mailingAddress })
-    .eq('id', currentUser.id);
-  if (profileErr) { showError(profileErr.message); reset(); return; }
+  // 2. Update profile via direct REST call
+  const profileRes = await fetch(
+    `${SUPABASE_URL}/rest/v1/profiles?id=eq.${currentUser.id}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${currentToken}`,
+      'apikey': SUPABASE_ANON,
+      'Prefer': 'return=minimal'
+    },
+    body: JSON.stringify({ full_name: fullName, phone, mailing_address: mailingAddress })
+  });
+  if (!profileRes.ok) {
+    const e = await profileRes.json().catch(() => ({}));
+    showError(e.message || `Profile error ${profileRes.status}`);
+    reset(); return;
+  }
 
   // 3. Show success then redirect
   showSuccess();
