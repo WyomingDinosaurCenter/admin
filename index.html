@@ -3,22 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <title>WDC Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
-    --primary:    #4A3728;
-    --gold:       #A07840;
-    --bg:         #FAF7F2;
-    --surface:    #FFFFFF;
-    --border:     #E0D5C5;
-    --text:       #2C2018;
-    --text-dim:   #8A7060;
-    --success:    #276C27;
-    --danger:     #C02020;
-    --warning:    #C06C00;
-    --radius:     10px;
+    --primary:   #4A3728;
+    --gold:      #A07840;
+    --bg:        #FAF7F2;
+    --surface:   #FFFFFF;
+    --border:    #E0D5C5;
+    --text:      #2C2018;
+    --text-dim:  #8A7060;
+    --success:   #276C27;
+    --danger:    #C02020;
+    --warning:   #C06C00;
+    --radius:    10px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -27,92 +26,130 @@
   /* ── Header ── */
   .app-header {
     background: var(--primary); color: white;
-    padding: 12px 16px; display: flex; align-items: center;
-    justify-content: space-between; position: sticky; top: 0; z-index: 100;
+    padding: 0 24px; height: 52px;
+    display: flex; align-items: stretch; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
   }
-  .app-header h1 { font-size: 1.1rem; font-weight: 600; letter-spacing: .02em; }
-  .app-header .subtitle { font-size: .75rem; opacity: .7; }
-  .header-right { display: flex; align-items: center; gap: 10px; }
-  .user-chip { font-size: .75rem; opacity: .75; }
-
-  /* ── Layout ── */
-  .container { max-width: 760px; margin: 0 auto; padding: 16px; }
-
-  /* ── Cards ── */
-  .card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); margin-bottom: 12px;
-    overflow: hidden;
+  .header-left  { display: flex; align-items: center; gap: 24px; }
+  .header-brand { font-size: 1rem; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+  .header-tabs  { display: flex; align-items: stretch; }
+  .header-tab {
+    padding: 0 18px; display: flex; align-items: center;
+    font-size: .85rem; font-weight: 500; cursor: pointer;
+    border-bottom: 3px solid transparent; color: rgba(255,255,255,.6);
+    transition: color .15s, border-color .15s; white-space: nowrap;
   }
-  .card-header {
-    background: var(--primary); color: white;
-    padding: 10px 14px; font-size: .85rem; font-weight: 600;
-    letter-spacing: .03em;
-  }
-  .card-body { padding: 14px; }
-
-  /* ── User rows ── */
-  .user-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 0; border-bottom: 1px solid var(--border);
-  }
-  .user-row:last-child { border-bottom: none; padding-bottom: 0; }
-  .user-avatar {
-    width: 36px; height: 36px; border-radius: 50%;
-    background: var(--primary); color: white;
-    display: flex; align-items: center; justify-content: center;
-    font-size: .85rem; font-weight: 700; flex-shrink: 0;
-  }
-  .user-avatar.inactive { background: #ccc; }
-  .user-info { flex: 1; min-width: 0; }
-  .user-name { font-size: .9rem; font-weight: 600; white-space: nowrap;
-               overflow: hidden; text-overflow: ellipsis; }
-  .user-email { font-size: .78rem; color: var(--text-dim);
-                white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .user-actions { display: flex; gap: 6px; flex-shrink: 0; }
-
-  /* ── Role badge ── */
-  .role-badge {
-    font-size: .7rem; font-weight: 600; padding: 2px 8px;
-    border-radius: 20px; text-transform: uppercase; letter-spacing: .04em;
-    white-space: nowrap;
-  }
-  .role-admin      { background: #3D2B1A22; color: var(--primary); }
-  .role-management { background: #A0784022; color: var(--gold); }
-  .role-staff      { background: #276C2722; color: var(--success); }
-  .role-registrar  { background: #1A4A7822; color: #1A4A78; }
-  .role-intern     { background: #C06C0022; color: var(--warning); }
-  .role-researcher { background: #60106022; color: #601060; }
-  .badge-inactive  { background: #ccc2; color: #888; }
+  .header-tab:hover  { color: rgba(255,255,255,.9); }
+  .header-tab.active { color: white; border-bottom-color: var(--gold); }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .user-chip    { font-size: .8rem; opacity: .75; }
 
   /* ── Buttons ── */
   .btn {
     padding: 7px 14px; border-radius: 8px; border: none;
     font-size: .82rem; font-weight: 600; cursor: pointer;
-    transition: opacity .15s;
+    transition: opacity .15s; white-space: nowrap;
   }
-  .btn:hover { opacity: .85; }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn:hover     { opacity: .85; }
+  .btn:disabled  { opacity: .35; cursor: not-allowed; }
   .btn-primary   { background: var(--primary); color: white; }
   .btn-gold      { background: var(--gold); color: white; }
-  .btn-ghost     { background: transparent; color: var(--text-dim);
-                   border: 1px solid var(--border); }
+  .btn-ghost     { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
   .btn-danger    { background: var(--danger); color: white; }
-  .btn-sm        { padding: 4px 10px; font-size: .75rem; }
-  .btn-icon      { padding: 5px 8px; font-size: .85rem; }
+  .btn-sm        { padding: 5px 10px; font-size: .78rem; }
 
-  /* ── Forms ── */
-  .form-group { margin-bottom: 12px; }
-  .form-label { display: block; font-size: .8rem; font-weight: 600;
-                color: var(--text-dim); margin-bottom: 4px; }
-  .form-input, .form-select {
-    width: 100%; padding: 9px 12px; border: 1px solid var(--border);
-    border-radius: 8px; font-size: .9rem; background: var(--surface);
-    color: var(--text); outline: none;
+  /* ── Tab views ── */
+  .tab-view        { display: none; }
+  .tab-view.active { display: block; }
+
+  /* ── Invite bar ── */
+  .invite-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 12px 24px; display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
   }
-  .form-input:focus, .form-select:focus { border-color: var(--gold); }
-  .form-row { display: flex; gap: 10px; }
-  .form-row .form-group { flex: 1; }
+  .invite-bar .fg      { margin: 0; }
+  .invite-bar .fl      { display: block; font-size: .75rem; font-weight: 600;
+                          color: var(--text-dim); margin-bottom: 3px; }
+  .invite-bar input,
+  .invite-bar select   {
+    padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: .85rem; background: var(--surface); color: var(--text);
+    outline: none; height: 34px;
+  }
+  .invite-bar input:focus,
+  .invite-bar select:focus { border-color: var(--gold); }
+  .invite-bar input  { width: 240px; }
+  .invite-bar select { width: 140px; }
+
+  /* ── Role columns grid ── */
+  .columns-area {
+    padding: 20px 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+
+  /* ── Individual role column ── */
+  .role-column {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); overflow: hidden;
+  }
+  .role-col-header { padding: 10px 10px 8px; border-bottom: 1px solid var(--border); }
+  .role-col-title {
+    font-size: .78rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .07em; margin-bottom: 7px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .role-col-count {
+    font-size: .7rem; font-weight: 500; background: var(--border);
+    color: var(--text-dim); border-radius: 10px; padding: 1px 6px;
+    text-transform: none; letter-spacing: 0;
+  }
+  .role-col-actions { display: flex; gap: 5px; }
+  .role-col-actions .btn {
+    padding: 3px 8px; font-size: .72rem; flex: 1; text-align: center;
+  }
+
+  /* ── Role title colours ── */
+  .role-admin      .role-col-title { color: #4A3728; }
+  .role-management .role-col-title { color: var(--gold); }
+  .role-registrar  .role-col-title { color: #1A4A78; }
+  .role-staff      .role-col-title { color: var(--success); }
+  .role-researcher .role-col-title { color: #601060; }
+  .role-intern     .role-col-title { color: var(--warning); }
+
+  /* ── User cards ── */
+  .role-col-body { padding: 6px; }
+  .user-card {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px; border-radius: 8px; cursor: pointer;
+    border: 2px solid transparent; margin-bottom: 3px;
+    transition: background .1s;
+  }
+  .user-card:last-child { margin-bottom: 0; }
+  .user-card:hover    { background: var(--bg); }
+  .user-card.selected { background: var(--bg); border-color: var(--gold); }
+  .user-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--primary); color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .75rem; font-weight: 700; flex-shrink: 0;
+  }
+  .role-admin      .user-avatar { background: #4A3728; }
+  .role-management .user-avatar { background: var(--gold); }
+  .role-registrar  .user-avatar { background: #1A4A78; }
+  .role-staff      .user-avatar { background: var(--success); }
+  .role-researcher .user-avatar { background: #601060; }
+  .role-intern     .user-avatar { background: var(--warning); }
+
+  .user-card-info  { flex: 1; min-width: 0; }
+  .user-card-name  { font-size: .82rem; font-weight: 600;
+                     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-card-email { font-size: .72rem; color: var(--text-dim);
+                     white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .you-tag { font-size: .68rem; color: var(--text-dim); font-weight: 400; }
+  .col-empty { font-size: .78rem; color: var(--text-dim); text-align: center; padding: 18px 8px; }
 
   /* ── Login ── */
   #login-screen {
@@ -123,12 +160,22 @@
     background: white; border-radius: 14px; padding: 32px;
     width: 100%; max-width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,.3);
   }
-  .login-logo { text-align: center; margin-bottom: 24px; }
-  .login-logo .org { font-size: 1.1rem; font-weight: 700; color: var(--primary); }
-  .login-logo .app { font-size: .85rem; color: var(--text-dim); margin-top: 2px; }
-  .login-error { background: #fee; border: 1px solid #fcc; color: var(--danger);
-                 padding: 8px 12px; border-radius: 8px; font-size: .82rem;
-                 margin-bottom: 12px; display: none; }
+  .login-logo .org { font-size: 1.1rem; font-weight: 700; color: var(--primary); text-align: center; }
+  .login-logo .app { font-size: .85rem; color: var(--text-dim); text-align: center; margin: 4px 0 24px; }
+  .login-error {
+    background: #fee; border: 1px solid #fcc; color: var(--danger);
+    padding: 8px 12px; border-radius: 8px; font-size: .82rem;
+    margin-bottom: 12px; display: none;
+  }
+  .form-group { margin-bottom: 12px; }
+  .form-label { display: block; font-size: .8rem; font-weight: 600;
+                color: var(--text-dim); margin-bottom: 4px; }
+  .form-input, .form-select {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: .9rem; background: var(--surface);
+    color: var(--text); outline: none;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--gold); }
 
   /* ── Toast ── */
   #toast {
@@ -137,7 +184,7 @@
     font-size: .85rem; opacity: 0; transition: opacity .3s; pointer-events: none;
     z-index: 999; white-space: nowrap;
   }
-  #toast.show { opacity: 1; }
+  #toast.show  { opacity: 1; }
   #toast.error { background: var(--danger); }
 
   /* ── Modal ── */
@@ -156,27 +203,23 @@
     padding: 14px 16px; font-size: .95rem; font-weight: 600;
     display: flex; justify-content: space-between; align-items: center;
   }
-  .modal-body { padding: 16px; }
-  .modal-footer { padding: 12px 16px; display: flex; gap: 8px; justify-content: flex-end;
-                  border-top: 1px solid var(--border); }
+  .modal-body   { padding: 16px; }
+  .modal-footer {
+    padding: 12px 16px; display: flex; gap: 8px; justify-content: flex-end;
+    border-top: 1px solid var(--border);
+  }
   .modal-close { background: none; border: none; color: white;
                  font-size: 1.2rem; cursor: pointer; opacity: .7; }
   .modal-close:hover { opacity: 1; }
-
-  /* ── Confirm dialog ── */
   .confirm-text { font-size: .9rem; line-height: 1.5; margin-bottom: 4px; }
   .confirm-sub  { font-size: .8rem; color: var(--text-dim); }
-
-  /* ── Misc ── */
-  .section-title { font-size: .95rem; font-weight: 700; color: var(--primary);
-                   margin-bottom: 12px; display: flex; justify-content: space-between;
-                   align-items: center; }
-  .empty-state { text-align: center; color: var(--text-dim);
-                 font-size: .85rem; padding: 24px 0; }
   .spinner { display: inline-block; width: 16px; height: 16px;
              border: 2px solid rgba(255,255,255,.4); border-top-color: white;
              border-radius: 50%; animation: spin .7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Placeholder tabs ── */
+  .placeholder { padding: 60px; text-align: center; color: var(--text-dim); font-size: .95rem; }
 </style>
 </head>
 <body>
@@ -208,56 +251,67 @@
 <div id="app-screen" style="display:none">
 
   <div class="app-header">
-    <div>
-      <div class="app-header h1" style="font-size:1.1rem;font-weight:600">WDC Admin</div>
-      <div class="subtitle">User Management <span style="opacity:.5;font-size:.7rem">v3</span></div>
+    <div class="header-left">
+      <div class="header-brand">WDC Admin</div>
+      <nav class="header-tabs">
+        <div class="header-tab active" data-tab="users"     onclick="switchTab('users')">Users</div>
+        <div class="header-tab"        data-tab="sites"     onclick="switchTab('sites')">Sites</div>
+        <div class="header-tab"        data-tab="specimens" onclick="switchTab('specimens')">Specimens</div>
+        <div class="header-tab"        data-tab="audit"     onclick="switchTab('audit')">Audit Log</div>
+      </nav>
     </div>
     <div class="header-right">
       <span class="user-chip" id="header-user"></span>
-      <button class="btn btn-ghost btn-sm" onclick="doSignOut()">Sign out</button>
+      <button class="btn btn-ghost btn-sm"
+              style="color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.3)"
+              onclick="doSignOut()">Sign out</button>
     </div>
   </div>
 
-  <div class="container">
+  <!-- USERS TAB -->
+  <div class="tab-view active" id="tab-users">
 
-    <!-- Invite new user -->
-    <div class="card">
-      <div class="card-header">Invite New User</div>
-      <div class="card-body">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Email address</label>
-            <input class="form-input" type="email" id="invite-email" placeholder="name@example.com">
-          </div>
-          <div class="form-group" style="max-width:160px">
-            <label class="form-label">Role</label>
-            <select class="form-select" id="invite-role">
-              <option value="intern">Intern</option>
-              <option value="staff">Staff</option>
-              <option value="registrar">Registrar</option>
-              <option value="management">Management</option>
-              <option value="researcher">Researcher</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-        </div>
-        <button class="btn btn-gold" id="invite-btn" onclick="doInvite()">Send Invite</button>
+    <div class="invite-bar">
+      <div class="fg">
+        <label class="fl">Email address</label>
+        <input type="email" id="invite-email" placeholder="name@example.com">
       </div>
+      <div class="fg">
+        <label class="fl">Role</label>
+        <select id="invite-role">
+          <option value="intern">Intern</option>
+          <option value="staff">Staff</option>
+          <option value="registrar">Registrar</option>
+          <option value="management">Management</option>
+          <option value="researcher">Researcher</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <button class="btn btn-gold" id="invite-btn" onclick="doInvite()">+ New User</button>
+      <button class="btn btn-ghost btn-sm" style="margin-left:auto;align-self:center" onclick="loadUsers()">↻ Refresh</button>
     </div>
 
-    <!-- User list -->
-    <div class="card">
-      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
-        <span>Users</span>
-        <button class="btn btn-ghost btn-sm" style="color:white;border-color:rgba(255,255,255,.3)"
-                onclick="loadUsers()">↻ Refresh</button>
-      </div>
-      <div class="card-body" id="user-list">
-        <div class="empty-state">Loading…</div>
-      </div>
+    <div class="columns-area" id="role-columns">
+      <div style="grid-column:1/-1;text-align:center;color:var(--text-dim);padding:40px">Loading…</div>
     </div>
 
   </div>
+
+  <!-- SITES TAB -->
+  <div class="tab-view" id="tab-sites">
+    <div class="placeholder">Sites — coming soon</div>
+  </div>
+
+  <!-- SPECIMENS TAB -->
+  <div class="tab-view" id="tab-specimens">
+    <div class="placeholder">Specimens — coming soon</div>
+  </div>
+
+  <!-- AUDIT LOG TAB -->
+  <div class="tab-view" id="tab-audit">
+    <div class="placeholder">Audit Log — coming soon</div>
+  </div>
+
 </div>
 
 <!-- ── ROLE MODAL ── -->
@@ -285,7 +339,7 @@
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('role-modal')">Cancel</button>
+      <button class="btn btn-ghost"   onclick="closeModal('role-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="doRoleUpdate()">Save</button>
     </div>
   </div>
@@ -300,7 +354,7 @@
       <div class="confirm-sub"  id="confirm-sub"></div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('confirm-modal')">Cancel</button>
+      <button class="btn btn-ghost"  onclick="closeModal('confirm-modal')">Cancel</button>
       <button class="btn btn-danger" id="confirm-ok-btn" onclick="confirmAction()">Confirm</button>
     </div>
   </div>
@@ -318,8 +372,7 @@
         Send this link to <strong id="invite-link-email"></strong>. It expires in 24 hours.
       </p>
       <div style="display:flex;gap:8px;align-items:center">
-        <input class="form-input" id="invite-link-url" readonly
-               style="font-size:.75rem;background:#f5f5f5">
+        <input class="form-input" id="invite-link-url" readonly style="font-size:.75rem;background:#f5f5f5">
         <button class="btn btn-gold btn-sm" onclick="copyInviteLink()">Copy</button>
       </div>
     </div>
@@ -333,24 +386,24 @@
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────
-const SUPABASE_URL    = 'https://xgvulkoqtqvgyprggvay.supabase.co';
-const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhndnVsa29xdHF2Z3lwcmdndmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MjEwNTUsImV4cCI6MjA5Nzk5NzA1NX0.-918Ro2JqRI251SgZPpMmpi0gfxrM6jUSGuXz7tBYVE';
-const FUNCTION_URL    = `${SUPABASE_URL}/functions/v1/admin-users`;
+const SUPABASE_URL  = 'https://xgvulkoqtqvgyprggvay.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhndnVsa29xdHF2Z3lwcmdndmF5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MjEwNTUsImV4cCI6MjA5Nzk5NzA1NX0.-918Ro2JqRI251SgZPpMmpi0gfxrM6jUSGuXz7tBYVE';
+const FUNCTION_URL  = `${SUPABASE_URL}/functions/v1/admin-users`;
 
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // ── STATE ─────────────────────────────────────────────────────
-let currentUser   = null;
-let currentSession= null;
-let pendingAction = null;
-let roleTargetId  = null;
+let currentUser    = null;
+let currentSession = null;
+let pendingAction  = null;
+let roleTargetId   = null;
+const selectedByRole = {}; // { roleName: { id, email, full_name, role } }
 
 // ── INIT ──────────────────────────────────────────────────────
 db.auth.onAuthStateChange(async (event, session) => {
   currentSession = session;
   if (session?.user) {
     currentUser = session.user;
-    // Verify admin role
     const { data: profile } = await db
       .from('profiles').select('role,full_name').eq('id', currentUser.id).single();
     if (profile?.role !== 'admin') {
@@ -358,8 +411,7 @@ db.auth.onAuthStateChange(async (event, session) => {
       await db.auth.signOut();
       return;
     }
-    document.getElementById('header-user').textContent =
-      profile.full_name || currentUser.email;
+    document.getElementById('header-user').textContent = profile.full_name || currentUser.email;
     showApp();
     loadUsers();
   } else {
@@ -372,67 +424,150 @@ function showApp()   { document.getElementById('login-screen').style.display = '
 function showLogin() { document.getElementById('login-screen').style.display = 'flex';
                        document.getElementById('app-screen').style.display = 'none'; }
 
+// ── TABS ──────────────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.header-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+}
+
 // ── AUTH ──────────────────────────────────────────────────────
 async function doLogin() {
   const email    = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
   const btn      = document.getElementById('login-btn');
   const errEl    = document.getElementById('login-error');
-
   errEl.style.display = 'none';
   btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled  = true;
-
   const { error } = await db.auth.signInWithPassword({ email, password });
-
   btn.textContent = 'Sign In';
   btn.disabled    = false;
-
-  if (error) {
-    errEl.textContent = error.message;
-    errEl.style.display = 'block';
-  }
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; }
 }
 
-async function doSignOut() {
-  await db.auth.signOut();
-}
+async function doSignOut() { await db.auth.signOut(); }
 
 // ── LOAD USERS ────────────────────────────────────────────────
-async function loadUsers() {
-  const list = document.getElementById('user-list');
-  list.innerHTML = '<div class="empty-state">Loading…</div>';
+const ROLE_ORDER = ['admin', 'management', 'registrar', 'staff', 'researcher', 'intern'];
 
-  // Get profiles + banned status via admin function
+async function loadUsers() {
+  const container = document.getElementById('role-columns');
+  container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-dim);padding:40px">Loading…</div>';
+
   const { data: profiles, error } = await db
     .from('profiles')
     .select('id, email, full_name, role, created_at')
-    .order('created_at');
+    .order('full_name');
 
-  if (error) { list.innerHTML = `<div class="empty-state">${error.message}</div>`; return; }
-  if (!profiles.length) { list.innerHTML = '<div class="empty-state">No users yet.</div>'; return; }
+  if (error) {
+    container.innerHTML = `<div style="grid-column:1/-1;text-align:center;color:var(--danger);padding:40px">${error.message}</div>`;
+    return;
+  }
 
-  list.innerHTML = profiles.map(p => {
-    const initials = (p.full_name || p.email).slice(0,2).toUpperCase();
-    const isMe     = p.id === currentUser?.id;
+  // Group by role
+  const byRole = {};
+  ROLE_ORDER.forEach(r => byRole[r] = []);
+  profiles.forEach(p => { if (byRole[p.role]) byRole[p.role].push(p); });
+
+  // Clear old selections
+  Object.keys(selectedByRole).forEach(k => delete selectedByRole[k]);
+
+  container.innerHTML = ROLE_ORDER.map(role => {
+    const users = byRole[role];
     return `
-    <div class="user-row" id="user-row-${p.id}">
-      <div class="user-avatar">${initials}</div>
-      <div class="user-info">
-        <div class="user-name">${p.full_name || '—'} ${isMe ? '<span style="font-size:.7rem;color:var(--text-dim)">(you)</span>' : ''}</div>
-        <div class="user-email">${p.email}</div>
-      </div>
-      <span class="role-badge role-${p.role}">${p.role}</span>
-      <div class="user-actions">
-        <button class="btn btn-ghost btn-sm btn-icon" title="Change role"
-                onclick="openRoleModal('${p.id}','${p.email}','${p.role}')">✎</button>
-        <button class="btn btn-ghost btn-sm btn-icon" title="Send password reset"
-                onclick="confirmReset('${p.email}')">🔑</button>
-        ${!isMe ? `<button class="btn btn-ghost btn-sm btn-icon" title="Deactivate"
-                onclick="confirmDeactivate('${p.id}','${p.email}')">⊘</button>` : ''}
-      </div>
-    </div>`;
+      <div class="role-column role-${role}" id="col-${role}">
+        <div class="role-col-header">
+          <div class="role-col-title">
+            <span>${role}</span>
+            <span class="role-col-count">${users.length}</span>
+          </div>
+          <div class="role-col-actions">
+            <button class="btn btn-ghost" id="act-role-${role}"  disabled
+                    onclick="openRoleModalForSelected('${role}')">Role</button>
+            <button class="btn btn-ghost" id="act-reset-${role}" disabled
+                    onclick="confirmResetForSelected('${role}')">Password</button>
+            <button class="btn btn-ghost" id="act-del-${role}"   disabled
+                    onclick="confirmDeleteForSelected('${role}')"
+                    style="color:var(--danger);border-color:var(--danger)">Delete</button>
+          </div>
+        </div>
+        <div class="role-col-body">
+          ${users.length === 0
+            ? `<div class="col-empty">No ${role}s</div>`
+            : users.map(p => {
+                const isMe = p.id === currentUser?.id;
+                const initials = (p.full_name || p.email).slice(0, 2).toUpperCase();
+                return `
+                  <div class="user-card${isMe ? ' me' : ''}" id="card-${p.id}"
+                       onclick="selectUser('${role}','${p.id}')">
+                    <div class="user-avatar">${initials}</div>
+                    <div class="user-card-info">
+                      <div class="user-card-name">
+                        ${p.full_name || '—'}
+                        ${isMe ? '<span class="you-tag">(you)</span>' : ''}
+                      </div>
+                      <div class="user-card-email">${p.email}</div>
+                    </div>
+                  </div>`;
+              }).join('')
+          }
+        </div>
+      </div>`;
   }).join('');
+
+  // Store profile data for column actions
+  container._profiles = profiles;
+}
+
+// ── SELECTION ─────────────────────────────────────────────────
+function selectUser(role, userId) {
+  const colCards = document.querySelectorAll(`#col-${role} .user-card`);
+
+  // Toggle off if already selected
+  if (selectedByRole[role]?.id === userId) {
+    selectedByRole[role] = null;
+    colCards.forEach(c => c.classList.remove('selected'));
+    setColActionsEnabled(role, false);
+    return;
+  }
+
+  // Select
+  colCards.forEach(c => c.classList.remove('selected'));
+  document.getElementById(`card-${userId}`)?.classList.add('selected');
+
+  // Find profile from stored data
+  const profiles = document.getElementById('role-columns')._profiles || [];
+  const p = profiles.find(x => x.id === userId);
+  if (p) selectedByRole[role] = p;
+
+  setColActionsEnabled(role, true);
+  // Can't delete yourself
+  if (userId === currentUser?.id) {
+    document.getElementById(`act-del-${role}`).disabled = true;
+  }
+}
+
+function setColActionsEnabled(role, enabled) {
+  ['role', 'reset', 'del'].forEach(a => {
+    const btn = document.getElementById(`act-${a}-${role}`);
+    if (btn) btn.disabled = !enabled;
+  });
+}
+
+// ── COLUMN ACTION HANDLERS ────────────────────────────────────
+function openRoleModalForSelected(role) {
+  const p = selectedByRole[role]; if (!p) return;
+  openRoleModal(p.id, p.email, p.role);
+}
+function confirmResetForSelected(role) {
+  const p = selectedByRole[role]; if (!p) return;
+  confirmReset(p.email);
+}
+function confirmDeleteForSelected(role) {
+  const p = selectedByRole[role]; if (!p) return;
+  confirmDelete(p.id, p.email);
 }
 
 // ── INVITE ────────────────────────────────────────────────────
@@ -440,27 +575,17 @@ async function doInvite() {
   const email = document.getElementById('invite-email').value.trim();
   const role  = document.getElementById('invite-role').value;
   const btn   = document.getElementById('invite-btn');
-
   if (!email) { showToast('Enter an email address', true); return; }
-
-  btn.innerHTML = '<span class="spinner"></span> Sending…';
+  btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled  = true;
-
   const res = await callFunction({ action: 'invite', email, role });
-
-  btn.textContent = 'Send Invite';
+  btn.textContent = '+ New User';
   btn.disabled    = false;
-
   if (res.error) { showToast(res.error, true); return; }
-
   document.getElementById('invite-email').value = '';
   setTimeout(loadUsers, 1500);
-
-  if (res.invite_link) {
-    showInviteLink(email, res.invite_link);
-  } else {
-    showToast(`Invite created for ${email}`);
-  }
+  if (res.invite_link) showInviteLink(email, res.invite_link);
+  else showToast(`Invite created for ${email}`);
 }
 
 // ── ROLE MODAL ────────────────────────────────────────────────
@@ -482,11 +607,11 @@ async function doRoleUpdate() {
 
 // ── CONFIRM HELPERS ───────────────────────────────────────────
 function confirmReset(email) {
-  document.getElementById('confirm-title').textContent = 'Send Password Reset';
-  document.getElementById('confirm-text').textContent  = `Send a password reset email to ${email}?`;
-  document.getElementById('confirm-sub').textContent   = 'They will receive a link to set a new password.';
-  document.getElementById('confirm-ok-btn').textContent= 'Send Reset Email';
-  document.getElementById('confirm-ok-btn').className  = 'btn btn-gold';
+  document.getElementById('confirm-title').textContent  = 'Send Password Reset';
+  document.getElementById('confirm-text').textContent   = `Send a password reset email to ${email}?`;
+  document.getElementById('confirm-sub').textContent    = 'They will receive a link to set a new password.';
+  document.getElementById('confirm-ok-btn').textContent = 'Send Reset Email';
+  document.getElementById('confirm-ok-btn').className   = 'btn btn-gold';
   pendingAction = async () => {
     const res = await callFunction({ action: 'reset_password', email });
     if (res.error) { showToast(res.error, true); return; }
@@ -495,16 +620,16 @@ function confirmReset(email) {
   openModal('confirm-modal');
 }
 
-function confirmDeactivate(userId, email) {
-  document.getElementById('confirm-title').textContent = 'Deactivate User';
-  document.getElementById('confirm-text').textContent  = `Deactivate ${email}?`;
-  document.getElementById('confirm-sub').textContent   = 'They will be immediately locked out of all WDC apps.';
-  document.getElementById('confirm-ok-btn').textContent= 'Deactivate';
-  document.getElementById('confirm-ok-btn').className  = 'btn btn-danger';
+function confirmDelete(userId, email) {
+  document.getElementById('confirm-title').textContent  = 'Delete User';
+  document.getElementById('confirm-text').textContent   = `Delete ${email}?`;
+  document.getElementById('confirm-sub').textContent    = 'They will be immediately locked out of all WDC apps.';
+  document.getElementById('confirm-ok-btn').textContent = 'Delete';
+  document.getElementById('confirm-ok-btn').className   = 'btn btn-danger';
   pendingAction = async () => {
     const res = await callFunction({ action: 'deactivate', userId });
     if (res.error) { showToast(res.error, true); return; }
-    showToast(`${email} deactivated`);
+    showToast(`${email} deleted`);
     loadUsers();
   };
   openModal('confirm-modal');
@@ -515,7 +640,7 @@ async function confirmAction() {
   if (pendingAction) { await pendingAction(); pendingAction = null; }
 }
 
-// ── EDGE FUNCTION CALLER ──────────────────────────────────────
+// ── EDGE FUNCTION ─────────────────────────────────────────────
 async function callFunction(body) {
   try {
     const res = await fetch(FUNCTION_URL, {
@@ -532,7 +657,7 @@ async function callFunction(body) {
   }
 }
 
-// ── MODAL / TOAST UTILS ───────────────────────────────────────
+// ── MODAL / TOAST ─────────────────────────────────────────────
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
@@ -544,7 +669,6 @@ function showToast(msg, isError = false) {
   t._timer = setTimeout(() => { t.className = ''; }, 3000);
 }
 
-// ── INVITE LINK ───────────────────────────────────────────────
 function showInviteLink(email, link) {
   document.getElementById('invite-link-email').textContent = email;
   document.getElementById('invite-link-url').value = link;
@@ -553,17 +677,12 @@ function showInviteLink(email, link) {
 
 function copyInviteLink() {
   const input = document.getElementById('invite-link-url');
-  navigator.clipboard.writeText(input.value).then(() => {
-    showToast('Link copied to clipboard');
-  }).catch(() => {
-    input.select();
-    document.execCommand('copy');
-    showToast('Link copied');
-  });
+  navigator.clipboard.writeText(input.value)
+    .then(() => showToast('Link copied'))
+    .catch(() => { input.select(); document.execCommand('copy'); showToast('Link copied'); });
 }
 
 // ── SERVICE WORKER ────────────────────────────────────────────
-// Unregister any previously installed service workers
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
 }
