@@ -524,6 +524,8 @@ async function doLogin() {
   btn.disabled    = false;
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
 
+  currentSession = data.session; // ensure session is available for callFunction
+
   // Check admin role
   const { data: profile } = await db
     .from('profiles').select('role,full_name').eq('id', data.user.id).single();
