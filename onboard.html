@@ -202,9 +202,33 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let currentUser = null;
 
 // ── INIT ──────────────────────────────────────────────────────
-db.auth.onAuthStateChange(async (event, session) => {
+async function init() {
+  // Parse access_token / refresh_token from URL hash (magic link)
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  const accessToken  = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+
+  let session = null;
+
+  if (accessToken && refreshToken) {
+    // Explicitly load the session from the magic link tokens
+    const { data, error } = await db.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken
+    });
+    if (!error) session = data.session;
+  } else {
+    // Fall back to stored session (e.g. page refresh)
+    const { data } = await db.auth.getSession();
+    session = data.session;
+  }
+
   if (session?.user) {
     currentUser = session.user;
+    // Clear the hash so the token isn't reused on refresh
+    history.replaceState(null, '', window.location.pathname);
+
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('main-card').style.display = 'block';
 
@@ -214,10 +238,12 @@ db.auth.onAuthStateChange(async (event, session) => {
       document.getElementById('full-name').value = meta.full_name;
     }
   } else {
-    // No session — link may be expired or already used
-    document.getElementById('loading').textContent = 'This link has expired or has already been used. Please contact your administrator for a new link.';
+    document.getElementById('loading').textContent =
+      'This link has expired or has already been used. Please contact your administrator for a new link.';
   }
-});
+}
+
+init();
 
 // ── PASSWORD STRENGTH ─────────────────────────────────────────
 function checkStrength() {
