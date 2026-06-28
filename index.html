@@ -220,6 +220,33 @@
 
   /* ── Placeholder tabs ── */
   .placeholder { padding: 60px; text-align: center; color: var(--text-dim); font-size: .95rem; }
+
+  /* ── Info tab ── */
+  .info-page { max-width: 640px; margin: 40px auto; padding: 0 24px; }
+  .info-page h2 { font-size: 1.3rem; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
+  .info-subtitle { font-size: .88rem; color: var(--text-dim); margin-bottom: 32px; }
+  .info-section { margin-bottom: 28px; }
+  .info-section-title {
+    font-size: .72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .08em; color: var(--text-dim); margin-bottom: 10px;
+  }
+  .info-link {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    text-decoration: none; color: var(--text);
+    margin-bottom: 8px; transition: border-color .15s, box-shadow .15s;
+  }
+  .info-link:hover { border-color: var(--gold); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .info-link-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: var(--primary); color: white;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .info-link-body { flex: 1; min-width: 0; }
+  .info-link-title { font-size: .9rem; font-weight: 600; margin-bottom: 2px; }
+  .info-link-url   { font-size: .75rem; color: var(--text-dim); }
+  .info-link-arrow { font-size: 1rem; color: var(--text-dim); }
 </style>
 </head>
 <body>
@@ -254,10 +281,13 @@
     <div class="header-left">
       <div class="header-brand">WDC Admin</div>
       <nav class="header-tabs">
-        <div class="header-tab active" data-tab="users"     onclick="switchTab('users')">Users</div>
-        <div class="header-tab"        data-tab="sites"     onclick="switchTab('sites')">Sites</div>
-        <div class="header-tab"        data-tab="specimens" onclick="switchTab('specimens')">Specimens</div>
-        <div class="header-tab"        data-tab="audit"     onclick="switchTab('audit')">Audit Log</div>
+        <div class="header-tab active" data-tab="users"   onclick="switchTab('users')">Users</div>
+        <div class="header-tab"        data-tab="field"   onclick="switchTab('field')">Field</div>
+        <div class="header-tab"        data-tab="lab"     onclick="switchTab('lab')">Lab</div>
+        <div class="header-tab"        data-tab="intake"  onclick="switchTab('intake')">Intake</div>
+        <div class="header-tab"        data-tab="catalog" onclick="switchTab('catalog')">Catalog</div>
+        <div class="header-tab"        data-tab="audit"   onclick="switchTab('audit')">Audit Log</div>
+        <div class="header-tab"        data-tab="info"    onclick="switchTab('info')">Info</div>
       </nav>
     </div>
     <div class="header-right">
@@ -297,19 +327,81 @@
 
   </div>
 
-  <!-- SITES TAB -->
-  <div class="tab-view" id="tab-sites">
-    <div class="placeholder">Sites — coming soon</div>
+  <!-- FIELD TAB -->
+  <div class="tab-view" id="tab-field">
+    <div class="placeholder">Field — coming soon</div>
   </div>
 
-  <!-- SPECIMENS TAB -->
-  <div class="tab-view" id="tab-specimens">
-    <div class="placeholder">Specimens — coming soon</div>
+  <!-- LAB TAB -->
+  <div class="tab-view" id="tab-lab">
+    <div class="placeholder">Lab — coming soon</div>
+  </div>
+
+  <!-- INTAKE TAB -->
+  <div class="tab-view" id="tab-intake">
+    <div class="placeholder">Intake — coming soon</div>
+  </div>
+
+  <!-- CATALOG TAB -->
+  <div class="tab-view" id="tab-catalog">
+    <div class="placeholder">Catalog — coming soon</div>
   </div>
 
   <!-- AUDIT LOG TAB -->
   <div class="tab-view" id="tab-audit">
     <div class="placeholder">Audit Log — coming soon</div>
+  </div>
+
+  <!-- INFO TAB -->
+  <div class="tab-view" id="tab-info">
+    <div class="info-page">
+      <h2>WDC Digital Collections</h2>
+      <p class="info-subtitle">Key links for the development and administration of this system.</p>
+
+      <div class="info-section">
+        <div class="info-section-title">Development</div>
+        <a class="info-link" href="https://github.com/WyomingDinosaurCenter" target="_blank">
+          <div class="info-link-icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+          </div>
+          <div class="info-link-body">
+            <div class="info-link-title">GitHub — WyomingDinosaurCenter</div>
+            <div class="info-link-url">github.com/WyomingDinosaurCenter</div>
+          </div>
+          <div class="info-link-arrow">↗</div>
+        </a>
+        <a class="info-link" href="https://supabase.com/dashboard/org/oposhgiiqjgtimiswcin" target="_blank">
+          <div class="info-link-icon" style="background:#1c7a3b;color:white">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path d="M11.9 1.036c-.015-.986-1.26-1.41-1.874-.637L.764 12.05C.163 12.88.752 14 1.79 14h9.033l.115 8.95c.015.987 1.262 1.41 1.874.638l9.262-11.653c.6-.83.013-1.948-1.024-1.948h-9.027L11.9 1.036z"/>
+            </svg>
+          </div>
+          <div class="info-link-body">
+            <div class="info-link-title">Supabase — Database &amp; Auth</div>
+            <div class="info-link-url">supabase.com/dashboard</div>
+          </div>
+          <div class="info-link-arrow">↗</div>
+        </a>
+      </div>
+
+      <div class="info-section">
+        <div class="info-section-title">Documentation</div>
+        <a class="info-link" href="https://github.com/WyomingDinosaurCenter/docs/blob/main/WDC-DigitalCollectionProposal-v2.pdf" target="_blank">
+          <div class="info-link-icon" style="background:#a02020;color:white">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v7h7v9H6z"/>
+            </svg>
+          </div>
+          <div class="info-link-body">
+            <div class="info-link-title">WDC Digital Collections Proposal v2</div>
+            <div class="info-link-url">WDC-DigitalCollectionProposal-v2.pdf</div>
+          </div>
+          <div class="info-link-arrow">↗</div>
+        </a>
+      </div>
+    </div>
   </div>
 
 </div>
