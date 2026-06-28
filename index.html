@@ -492,23 +492,9 @@ let roleTargetId   = null;
 const selectedByRole = {}; // { roleName: { id, email, full_name, role } }
 
 // ── INIT ──────────────────────────────────────────────────────
-db.auth.onAuthStateChange(async (event, session) => {
+db.auth.onAuthStateChange((event, session) => {
   currentSession = session;
-  if (session?.user) {
-    currentUser = session.user;
-    const { data: profile } = await db
-      .from('profiles').select('role,full_name').eq('id', currentUser.id).single();
-    if (profile?.role !== 'admin') {
-      showToast('Access denied — admin role required', true);
-      await db.auth.signOut();
-      return;
-    }
-    document.getElementById('header-user').textContent = profile.full_name || currentUser.email;
-    showApp();
-    loadUsers();
-  } else {
-    showLogin();
-  }
+  if (!session?.user) showLogin();
 });
 
 function showApp()   { document.getElementById('login-screen').style.display = 'none';
@@ -533,10 +519,23 @@ async function doLogin() {
   errEl.style.display = 'none';
   btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled  = true;
-  const { error } = await db.auth.signInWithPassword({ email, password });
+  const { data, error } = await db.auth.signInWithPassword({ email, password });
   btn.textContent = 'Sign In';
   btn.disabled    = false;
-  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; }
+  if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
+
+  // Check admin role
+  const { data: profile } = await db
+    .from('profiles').select('role,full_name').eq('id', data.user.id).single();
+  if (profile?.role !== 'admin') {
+    errEl.textContent = 'Access denied — admin role required';
+    errEl.style.display = 'block';
+    await db.auth.signOut();
+    return;
+  }
+  document.getElementById('header-user').textContent = profile.full_name || data.user.email;
+  showApp();
+  loadUsers();
 }
 
 async function doSignOut() { await db.auth.signOut(); }
