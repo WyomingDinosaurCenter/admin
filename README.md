@@ -6,7 +6,7 @@ A desktop web app for administering the **Wyoming Dinosaur Center** digital coll
 
 ## Overview
 
-The admin console is the control panel for the WDC digital collections platform. Admins invite new users, assign roles, manage passwords, and will access field, lab, intake, catalog, and audit log data as those modules are built out.
+The admin console is the control panel for the WDC digital collections platform. Admins invite new users, assign roles, manage passwords, and will access site and specimen data — including intake and cataloging — as those modules are built out.
 
 ---
 
@@ -14,7 +14,7 @@ The admin console is the control panel for the WDC digital collections platform.
 
 - **User management** — invite new users via magic link, assign roles, reset passwords, delete accounts
 - **Role columns** — users organized by role in a column-per-role layout; click to select, then act
-- **Tab navigation** — Users, Field, Lab, Intake, Catalog, Audit Log, Info
+- **Tab navigation** — Users, Sites, Specimens, Info. Intake and Catalog are sub-tabs within the Specimens page
 - **Admin-only access** — non-admin accounts are rejected at sign-in with a clear error message
 - **No service worker** — intentionally excluded to avoid caching stale admin UI
 
@@ -129,11 +129,12 @@ where email = 'your@email.com';
 Tabs currently showing "coming soon" will be built out in future phases:
 
 - [x] Users — invite, role management, password reset
-- [ ] Field — view and manage field collection records
-- [ ] Lab — preparation lab workflow
-- [ ] Intake — collections intake processing
-- [ ] Catalog — formal cataloging and Darwin Core export
-- [ ] Audit Log — full change history for all records
+- [ ] Sites — view, edit, and archive dig sites / localities
+- [ ] Specimens — browse and search all specimen records
+  - [ ] Intake — digitize paper field sheets (VLM-assisted), review before commit
+  - [ ] Catalog — formal cataloging, taxonomy, storage, and Darwin Core export
+
+Audit log / full change history is deferred to a later admin & reporting phase.
 
 ---
 

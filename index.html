@@ -220,6 +220,22 @@
 
   /* ── Placeholder tabs ── */
   .placeholder { padding: 60px; text-align: center; color: var(--text-dim); font-size: .95rem; }
+  .placeholder .ph-sub { display: block; margin-top: 8px; font-size: .82rem; opacity: .75; }
+
+  /* ── Sub-tabs (within a top-level tab, e.g. Specimens) ── */
+  .subtab-bar {
+    display: flex; gap: 4px; padding: 10px 24px 0;
+    background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+  .subtab {
+    padding: 8px 16px; font-size: .82rem; font-weight: 600; cursor: pointer;
+    color: var(--text-dim); border-bottom: 3px solid transparent;
+    border-radius: 6px 6px 0 0; transition: color .15s, border-color .15s;
+  }
+  .subtab:hover  { color: var(--text); }
+  .subtab.active { color: var(--primary); border-bottom-color: var(--gold); }
+  .subtab-view        { display: none; }
+  .subtab-view.active { display: block; }
 
   /* ── Info tab ── */
   .info-page { max-width: 640px; margin: 40px auto; padding: 0 24px; }
@@ -281,13 +297,10 @@
     <div class="header-left">
       <div class="header-brand">WDC Admin</div>
       <nav class="header-tabs">
-        <div class="header-tab active" data-tab="users"   onclick="switchTab('users')">Users</div>
-        <div class="header-tab"        data-tab="field"   onclick="switchTab('field')">Field</div>
-        <div class="header-tab"        data-tab="lab"     onclick="switchTab('lab')">Lab</div>
-        <div class="header-tab"        data-tab="intake"  onclick="switchTab('intake')">Intake</div>
-        <div class="header-tab"        data-tab="catalog" onclick="switchTab('catalog')">Catalog</div>
-        <div class="header-tab"        data-tab="audit"   onclick="switchTab('audit')">Audit Log</div>
-        <div class="header-tab"        data-tab="info"    onclick="switchTab('info')">Info</div>
+        <div class="header-tab active" data-tab="users"     onclick="switchTab('users')">Users</div>
+        <div class="header-tab"        data-tab="sites"     onclick="switchTab('sites')">Sites</div>
+        <div class="header-tab"        data-tab="specimens" onclick="switchTab('specimens')">Specimens</div>
+        <div class="header-tab"        data-tab="info"      onclick="switchTab('info')">Info</div>
       </nav>
     </div>
     <div class="header-right">
@@ -327,29 +340,42 @@
 
   </div>
 
-  <!-- FIELD TAB -->
-  <div class="tab-view" id="tab-field">
-    <div class="placeholder">Field — coming soon</div>
+  <!-- SITES TAB -->
+  <div class="tab-view" id="tab-sites">
+    <div class="placeholder">
+      Sites — coming soon
+      <span class="ph-sub">Manage dig sites / localities: view, edit, and archive collection sites.</span>
+    </div>
   </div>
 
-  <!-- LAB TAB -->
-  <div class="tab-view" id="tab-lab">
-    <div class="placeholder">Lab — coming soon</div>
-  </div>
+  <!-- SPECIMENS TAB (Intake + Catalog live here) -->
+  <div class="tab-view" id="tab-specimens">
+    <div class="subtab-bar">
+      <div class="subtab active" data-subtab="browse"  onclick="switchSubtab('browse')">All Specimens</div>
+      <div class="subtab"        data-subtab="intake"  onclick="switchSubtab('intake')">Intake</div>
+      <div class="subtab"        data-subtab="catalog" onclick="switchSubtab('catalog')">Catalog</div>
+    </div>
 
-  <!-- INTAKE TAB -->
-  <div class="tab-view" id="tab-intake">
-    <div class="placeholder">Intake — coming soon</div>
-  </div>
+    <div class="subtab-view active" id="subtab-browse">
+      <div class="placeholder">
+        Specimens — coming soon
+        <span class="ph-sub">Browse and search all specimen records across field, lab, and collections.</span>
+      </div>
+    </div>
 
-  <!-- CATALOG TAB -->
-  <div class="tab-view" id="tab-catalog">
-    <div class="placeholder">Catalog — coming soon</div>
-  </div>
+    <div class="subtab-view" id="subtab-intake">
+      <div class="placeholder">
+        Intake — coming soon
+        <span class="ph-sub">Digitize paper field sheets with VLM-assisted scanning; review each record before it is committed.</span>
+      </div>
+    </div>
 
-  <!-- AUDIT LOG TAB -->
-  <div class="tab-view" id="tab-audit">
-    <div class="placeholder">Audit Log — coming soon</div>
+    <div class="subtab-view" id="subtab-catalog">
+      <div class="placeholder">
+        Catalog — coming soon
+        <span class="ph-sub">Complete the Darwin Core record: taxonomy, formation/member/bed, catalog number, storage, and export.</span>
+      </div>
+    </div>
   </div>
 
   <!-- INFO TAB -->
@@ -508,6 +534,14 @@ function switchTab(name) {
   document.querySelectorAll('.header-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.add('active');
   document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+}
+
+// Sub-tabs within the Specimens page (Intake / Catalog live here)
+function switchSubtab(name) {
+  document.querySelectorAll('.subtab-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`subtab-${name}`).classList.add('active');
+  document.querySelector(`[data-subtab="${name}"]`).classList.add('active');
 }
 
 // ── AUTH ──────────────────────────────────────────────────────
