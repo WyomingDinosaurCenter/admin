@@ -54,39 +54,46 @@ Maps use free, no-key tile sources: Esri World Imagery (satellite), OpenTopoMap 
 
 ## User Roles
 
-| Role | Description |
-|------|-------------|
-| `intern` | Field data entry |
-| `staff` | Field data entry |
-| `registrar` | Collections management; audit log access |
-| `management` | Edit any record; archive sites; audit log access |
-| `researcher` | Read access |
-| `admin` | Full access; can use this admin console |
+Any role can sign in to the desktop app; features are gated per role (see the matrix the team maintains). Effective access today:
+
+| Role | Access |
+|------|--------|
+| `intern` | View; create/edit own specimens; **create + edit sites**; intake |
+| `staff` | View; create/edit own specimens; **create + edit sites**; intake |
+| `registrar` | Catalog any specimen; sites; custody; reference data (view) |
+| `management` | Edit any record; archive sites; reference data (edit) |
+| `researcher` | Read-only |
+| `admin` | Full access; **Users** panel (invite / roles / reset / delete) |
+
+Enforcement lives in Supabase RLS + the `admin-users` Edge Function; the UI mirrors it. Users is the only panel gated in the UI today (admin-only); finer per-action limits are enforced by RLS and tightened over time.
 
 ---
 
-## Invite Flow
+## Invite & Password Reset Flow
 
-1. Admin enters email and role in the Users tab → clicks **+ New User**
-2. The `admin-users` Edge Function creates the auth account and generates a magic link pointing to `onboard.html`
-3. Admin copies the link and sends it to the new user
-4. New user clicks the link, lands on `onboard.html`, sets their name, phone, mailing address, and password
-5. On submit, they are routed to the field app (non-admin) or admin app (admin)
+Both send email automatically via the project's configured SMTP (Resend), with a copyable backup link shown to the admin in case the email doesn't arrive.
+
+1. Admin enters email + role in the Users tab → **+ New User** (or picks a user → **Password**)
+2. The `admin-users` Edge Function creates/sets the account and **emails** the recipient a link to `onboard.html`
+3. The recipient clicks the link, lands on `onboard.html`, and sets their name, phone, mailing address, and password
+4. On submit they are routed to the appropriate app
 
 ---
 
 ## Edge Function
 
-The `admin-users` function handles all privileged user operations using the Supabase service role key. It is called from the admin app with a Bearer token (the signed-in admin's access token).
+The `admin-users` function handles all privileged user operations using the Supabase service-role key. It is called from the app with a Bearer token and **verifies the caller is an admin server-side** (403 otherwise) — so relaxing the UI login to all roles does not expose these operations.
 
 Supported actions:
 
 | Action | Description |
 |--------|-------------|
-| `invite` | Create user account + generate onboarding magic link |
+| `invite` | Create the user, set role, and **email an invite** (`inviteUserByEmail`) → `onboard.html`; returns a backup link |
 | `update_role` | Change a user's role in the `profiles` table |
-| `reset_password` | Send a password reset email |
-| `deactivate` | Delete a user account |
+| `reset_password` | **Email a recovery link** (`resetPasswordForEmail`) → `onboard.html`; returns a backup link |
+| `deactivate` | Delete a user account (cannot delete self) |
+
+Email requires a configured SMTP provider (Resend) — see the `supabase` repo README. Redeploy after changes: `supabase functions deploy admin-users`.
 
 ---
 
@@ -94,13 +101,17 @@ Supported actions:
 
 ### 1. Supabase configuration
 
-Ensure the database schema is deployed (see `wdc-supabase` or `wdc-field` repos for `schema.sql`).
+Deploy the schema from the `supabase` repo (`schema.sql`, then the reference-data and `rls-sites.sql` scripts — see that repo's README for order).
 
 In **Authentication → URL Configuration**:
 - **Site URL**: `https://{your-github-org}.github.io`
-- **Redirect URLs**: `https://{your-github-org}.github.io/**`
+- **Redirect URLs**: include `https://{your-github-org}.github.io/**` (must cover `.../admin/onboard.html`, or invite/reset redirects are blocked)
 
-### 2. Edge Function secrets
+### 2. Email (SMTP)
+
+Invite and password-reset emails send through the project's SMTP provider. In **Authentication → Emails / SMTP**, enable custom SMTP (Resend) with a **verified sender address/domain**. Custom SMTP is available on the Supabase free tier; the built-in sender is capped at ~2 emails/hour and won't work for real onboarding.
+
+### 3. Edge Function secrets
 
 Set these in **Supabase → Edge Functions → Secrets**:
 
@@ -109,7 +120,9 @@ Set these in **Supabase → Edge Functions → Secrets**:
 | `SITE_URL` | `https://{your-github-org}.github.io/admin/` |
 | `FIELD_URL` | `https://{your-github-org}.github.io/field/` |
 
-### 3. App configuration
+Deploy with `supabase functions deploy admin-users`.
+
+### 4. App configuration
 
 Update credentials in `index.html` and `onboard.html`:
 
@@ -118,11 +131,11 @@ const SUPABASE_URL  = 'https://your-project.supabase.co';
 const SUPABASE_ANON = 'your-anon-public-key';
 ```
 
-### 4. Deploy
+### 5. Deploy
 
 Push to GitHub. Enable **GitHub Pages** on the repo. The app is live at `https://{org}.github.io/admin/`.
 
-### 5. Make yourself admin
+### 6. Make yourself admin
 
 ```sql
 update profiles set role = 'admin'::user_role

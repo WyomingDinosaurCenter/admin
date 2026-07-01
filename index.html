@@ -793,12 +793,12 @@
 <div class="modal-bg" id="invite-link-modal">
   <div class="modal">
     <div class="modal-header">
-      Invite Link Created
+      <span id="invite-link-title">Invite Sent</span>
       <button class="modal-close" onclick="closeModal('invite-link-modal')">✕</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:.85rem;margin-bottom:10px">
-        Send this link to <strong id="invite-link-email"></strong>. It expires in 24 hours.
+      <p style="font-size:.85rem;margin-bottom:10px" id="invite-link-desc">
+        An email was sent to <strong id="invite-link-email"></strong>. As a backup, you can also copy this link and send it directly. It expires in 24 hours.
       </p>
       <div style="display:flex;gap:8px;align-items:center">
         <input class="form-input" id="invite-link-url" readonly style="font-size:.75rem;background:#f5f5f5">
@@ -1050,7 +1050,7 @@ async function doInvite() {
   document.getElementById('invite-email').value = '';
   setTimeout(loadUsers, 1500);
   if (res.invite_link) showInviteLink(email, res.invite_link);
-  else showToast(`Invite created for ${email}`);
+  else showToast(res.message || `Invite emailed to ${email}`);
 }
 
 // ── ROLE MODAL ────────────────────────────────────────────────
@@ -1080,7 +1080,8 @@ function confirmReset(email) {
   pendingAction = async () => {
     const res = await callFunction({ action: 'reset_password', email });
     if (res.error) { showToast(res.error, true); return; }
-    showToast(`Reset email sent to ${email}`);
+    if (res.reset_link) showInviteLink(email, res.reset_link, 'reset');
+    else showToast(res.message || `Reset email sent to ${email}`);
   };
   openModal('confirm-modal');
 }
@@ -1134,8 +1135,11 @@ function showToast(msg, isError = false) {
   t._timer = setTimeout(() => { t.className = ''; }, 3000);
 }
 
-function showInviteLink(email, link) {
-  document.getElementById('invite-link-email').textContent = email;
+function showInviteLink(email, link, kind) {
+  const isReset = kind === 'reset';
+  document.getElementById('invite-link-title').textContent = isReset ? 'Password Reset Sent' : 'Invite Sent';
+  document.getElementById('invite-link-desc').innerHTML =
+    `A ${isReset ? 'password-reset' : 'invite'} email was sent to <strong id="invite-link-email">${email}</strong>. As a backup, you can also copy this link and send it directly. It expires in 24 hours.`;
   document.getElementById('invite-link-url').value = link;
   openModal('invite-link-modal');
 }
