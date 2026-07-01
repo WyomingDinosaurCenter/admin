@@ -1,12 +1,12 @@
-# WDC Admin Console
+# WDC Collections (Desktop)
 
-A desktop web app for administering the **Wyoming Dinosaur Center** digital collections system. Manages users, roles, and provides access to collections data across all WDC apps.
+The single desktop web app for the **Wyoming Dinosaur Center** digital collections system — sites, specimen catalog, intake, reference data, and user administration. Views are shown or hidden by the signed-in user's role. (Repo is named `admin` for historical reasons; it is the desktop Collections app.)
 
 ---
 
 ## Overview
 
-The admin console is the control panel for the WDC digital collections platform. Admins invite new users, assign roles, manage passwords, and will access site and specimen data — including intake and cataloging — as those modules are built out.
+One desktop app serves every desk role. Any user with an assigned role can sign in; the header shows their role and the app reveals only the features they need. The **Users** panel is admin-only. The mobile, offline-first **field app** remains a separate app.
 
 ---
 
@@ -18,8 +18,8 @@ The admin console is the control panel for the WDC digital collections platform.
 - **Specimens** — the **Catalog** sub-tab browses/searches all occurrences with filters (site, formation, taxon, stage, and a **Needs cataloging** quick filter) and pagination; full Darwin Core record editor (cataloging, taxonomy, event, location, geology, element/condition, measurements, removal, notes, arrays); **photo gallery** (signed URLs + lightbox); **chain-of-custody** timeline with add-event; **storage location** capture (cabinet/drawer/shelf → `in_storage` custody event); **CSV export** with Darwin Core headers. The **Intake** sub-tab is a scaffold for future VLM digitization
 - **Reference Data** (under Info) — manage `formations`, `genera` (periodic-table symbol + diet + PBDB/GBIF IDs), `taxa` (species code + diet), `elements`, and `vocabularies`; edits flow to all WDC apps
 - **Tab navigation** — Users, Sites, Specimens, Info. Specimens has Catalog + Intake sub-tabs; Reference Data is a sub-tab within Info
-- **Admin-only access** — non-admin accounts are rejected at sign-in with a clear error message
-- **No service worker** — intentionally excluded to avoid caching stale admin UI
+- **Role-based access** — any user with a role can sign in; the header shows the role, and the **Users** tab is admin-only. Interns and staff can create and edit sites; reference-data and user management stay restricted. The UI mirrors the rules; the real enforcement is Supabase RLS + the `admin-users` Edge Function
+- **No service worker** — intentionally excluded to avoid caching stale UI
 
 ---
 

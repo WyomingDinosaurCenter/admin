@@ -48,6 +48,7 @@
   .header-tab.active { color: white; border-bottom-color: var(--gold); }
   .header-right { display: flex; align-items: center; gap: 12px; }
   .user-chip    { font-size: .8rem; opacity: .75; }
+  .role-chip    { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; background: rgba(255,255,255,.16); color: #fff; padding: 2px 8px; border-radius: 10px; }
 
   /* ── Buttons ── */
   .btn {
@@ -456,7 +457,7 @@
   <div class="login-box">
     <div class="login-logo">
       <div class="org">Wyoming Dinosaur Center</div>
-      <div class="app">Admin Console</div>
+      <div class="app">Collections</div>
     </div>
     <div class="login-error" id="login-error"></div>
     <div class="form-group">
@@ -479,15 +480,16 @@
 
   <div class="app-header">
     <div class="header-left">
-      <div class="header-brand">WDC Admin</div>
+      <div class="header-brand">WDC Collections</div>
       <nav class="header-tabs">
-        <div class="header-tab active" data-tab="users"     onclick="switchTab('users')">Users</div>
-        <div class="header-tab"        data-tab="sites"     onclick="switchTab('sites')">Sites</div>
+        <div class="header-tab"        data-tab="users"     onclick="switchTab('users')" style="display:none">Users</div>
+        <div class="header-tab active" data-tab="sites"     onclick="switchTab('sites')">Sites</div>
         <div class="header-tab"        data-tab="specimens" onclick="switchTab('specimens')">Specimens</div>
         <div class="header-tab"        data-tab="info"      onclick="switchTab('info')">Info</div>
       </nav>
     </div>
     <div class="header-right">
+      <span class="role-chip" id="header-role"></span>
       <span class="user-chip" id="header-user"></span>
       <button class="btn btn-ghost btn-sm"
               style="color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.3)"
@@ -827,6 +829,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 // ── STATE ─────────────────────────────────────────────────────
 let currentUser    = null;
 let currentSession = null;
+let currentRole    = null;
 let pendingAction  = null;
 let roleTargetId   = null;
 const selectedByRole = {}; // { roleName: { id, email, full_name, role } }
@@ -844,12 +847,22 @@ function showLogin() { document.getElementById('login-screen').style.display = '
 
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(name) {
+  if (name === 'users' && currentRole !== 'admin') return; // Users is admin-only
   document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.header-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.add('active');
   document.querySelector(`[data-tab="${name}"]`).classList.add('active');
   if (name === 'sites') sitesInit();
   if (name === 'specimens') specsInit();
+}
+
+// Reflect the signed-in user's role in the header and available tabs.
+function applyRoleUI(role) {
+  currentRole = role || 'staff';
+  const usersTab = document.querySelector('[data-tab="users"]');
+  if (usersTab) usersTab.style.display = (currentRole === 'admin') ? '' : 'none';
+  const chip = document.getElementById('header-role');
+  if (chip) chip.textContent = currentRole.charAt(0).toUpperCase() + currentRole.slice(1);
 }
 
 // Sub-tabs within a top-level tab (Specimens: Intake/Catalog; Info: Links/Reference Data).
@@ -881,18 +894,22 @@ async function doLogin() {
   currentSession = data.session; // ensure session is available for callFunction
   currentUser    = data.user;    // used for created_by + "you" tag
 
-  // Check admin role
+  // Any user with a profile/role may use the desktop app; features are gated by role.
   const { data: profile } = await db
     .from('profiles').select('role,full_name').eq('id', data.user.id).single();
-  if (profile?.role !== 'admin') {
-    errEl.textContent = 'Access denied — admin role required';
+  const role = profile?.role;
+  if (!role) {
+    errEl.textContent = 'No role assigned to this account — contact an administrator.';
     errEl.style.display = 'block';
     await db.auth.signOut();
     return;
   }
   document.getElementById('header-user').textContent = profile.full_name || data.user.email;
+  applyRoleUI(role);
   showApp();
-  loadUsers();
+  // Land admins on Users; everyone else on Sites.
+  if (role === 'admin') { switchTab('users'); loadUsers(); }
+  else { switchTab('sites'); }
 }
 
 async function doSignOut() { await db.auth.signOut(); }
