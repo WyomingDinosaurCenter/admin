@@ -574,12 +574,11 @@
     <!-- Browse / list view -->
     <div id="specs-browse-wrap">
       <div class="subtab-bar">
-        <div class="subtab active" data-subtab="browse"  onclick="switchSubtab('browse')">All Specimens</div>
-        <div class="subtab"        data-subtab="catalog" onclick="switchSubtab('catalog')">Catalog</div>
+        <div class="subtab active" data-subtab="browse"  onclick="switchSubtab('browse')">Catalog</div>
         <div class="subtab"        data-subtab="intake"  onclick="switchSubtab('intake')">Intake</div>
       </div>
 
-      <!-- ALL SPECIMENS -->
+      <!-- CATALOG (browse / search / edit all specimens) -->
       <div class="subtab-view active" id="subtab-browse">
         <div class="specs-filterbar">
           <input class="specs-search" id="specs-search" placeholder="Search catalog #, taxon, element…" oninput="specsDebouncedSearch()">
@@ -592,18 +591,13 @@
             <option value="PREP">Prep</option>
             <option value="CATALOG">Cataloged</option>
           </select>
+          <label class="sites-toggle"><input type="checkbox" id="specs-f-needscat" onchange="specsLoad()"> Needs cataloging</label>
           <span style="margin-left:auto;display:flex;gap:8px">
             <button class="btn btn-ghost btn-sm" onclick="specsLoad()">↻ Refresh</button>
             <button class="btn btn-ghost btn-sm" onclick="specsExportCsv()">⇩ Export CSV</button>
           </span>
         </div>
         <div id="specs-list"></div>
-      </div>
-
-      <!-- CATALOG QUEUE -->
-      <div class="subtab-view" id="subtab-catalog">
-        <div class="specs-note">Cataloging queue — specimens not yet fully cataloged (no genus assigned, or still marked <b>Field</b>). Open one to complete its Darwin Core record.</div>
-        <div id="specs-catalog-list"></div>
       </div>
 
       <!-- INTAKE (scaffold) -->
@@ -867,8 +861,7 @@ function switchSubtab(name) {
   tab.querySelector(`#subtab-${name}`).classList.add('active');
   tab.querySelector(`[data-subtab="${name}"]`).classList.add('active');
   if (name === 'info-ref' && !refState.loaded) refSelect(refState.type);
-  if (name === 'catalog') specsLoad('catalog');
-  if (name === 'browse') specsLoad('all');
+  if (name === 'browse') specsLoad();
 }
 
 // ── AUTH ──────────────────────────────────────────────────────
@@ -1223,7 +1216,7 @@ async function specsInit() {
   const tSel = document.getElementById('specs-f-taxon');
   tSel.innerHTML = '<option value="">All taxa</option>' + taxa.map(n => `<option value="${n}">${n}</option>`).join('');
 
-  specsLoad('all');
+  specsLoad();
 }
 
 const SPEC_SELECT = 'id,"catalogNumber",scientific_name,genus,type_status,verbatim_element,"eventDate",collection_code,sync_status,location_id,formation,locations(site_code,site_name)';
@@ -1239,15 +1232,14 @@ function specsBuildQuery(forCount) {
   if (form) q = q.eq('formation', form);
   if (taxon) q = q.eq('scientific_name', taxon);
   if (coll) q = q.eq('collection_code', coll);
-  if (specsState.mode === 'catalog') q = q.or('genus.is.null,collection_code.eq.FIELD');
-  else if (search) q = q.or(`"catalogNumber".ilike.*${search}*,scientific_name.ilike.*${search}*,verbatim_element.ilike.*${search}*,genus.ilike.*${search}*`);
+  if (document.getElementById('specs-f-needscat').checked) q = q.or('genus.is.null,collection_code.eq.FIELD');
+  if (search) q = q.or(`"catalogNumber".ilike.*${search}*,scientific_name.ilike.*${search}*,verbatim_element.ilike.*${search}*,genus.ilike.*${search}*`);
   return q.order('created_at', { ascending: false });
 }
 
-async function specsLoad(mode) {
-  if (mode) specsState.mode = mode;
+async function specsLoad() {
   specsState.offset = 0; specsState.allLoaded = false;
-  const container = specsState.mode === 'catalog' ? document.getElementById('specs-catalog-list') : document.getElementById('specs-list');
+  const container = document.getElementById('specs-list');
   container.innerHTML = '<div class="spec-empty">Loading…</div>';
   const { data, error } = await specsBuildQuery().range(0, SPEC_PAGE - 1);
   if (error) { container.innerHTML = `<div class="spec-empty" style="color:var(--danger)">${error.message}</div>`; return; }
@@ -1257,7 +1249,7 @@ async function specsLoad(mode) {
 }
 
 async function specsLoadMore() {
-  const container = specsState.mode === 'catalog' ? document.getElementById('specs-catalog-list') : document.getElementById('specs-list');
+  const container = document.getElementById('specs-list');
   const { data } = await specsBuildQuery().range(specsState.offset, specsState.offset + SPEC_PAGE - 1);
   specsState.offset += (data || []).length;
   specsState.allLoaded = (data || []).length < SPEC_PAGE;
@@ -1266,7 +1258,7 @@ async function specsLoadMore() {
 
 function specsDebouncedSearch() {
   clearTimeout(specsState.searchTimer);
-  specsState.searchTimer = setTimeout(() => specsLoad('all'), 300);
+  specsState.searchTimer = setTimeout(() => specsLoad(), 300);
 }
 
 function renderSpecTable(container, rows, append) {
@@ -1315,7 +1307,7 @@ async function specsOpen(id) {
 function specsBack() {
   document.getElementById('specs-detail').style.display = 'none';
   document.getElementById('specs-browse-wrap').style.display = 'block';
-  specsLoad(specsState.mode); // refresh list to reflect edits
+  specsLoad(); // refresh list to reflect edits
 }
 
 function specFieldHtml(col, label, type, options) {
@@ -1521,7 +1513,7 @@ async function specsExportCsv() {
         taxon = document.getElementById('specs-f-taxon').value, coll = document.getElementById('specs-f-collection').value;
   if (site) q = q.eq('location_id', site); if (form) q = q.eq('formation', form);
   if (taxon) q = q.eq('scientific_name', taxon); if (coll) q = q.eq('collection_code', coll);
-  if (specsState.mode === 'catalog') q = q.or('genus.is.null,collection_code.eq.FIELD');
+  if (document.getElementById('specs-f-needscat').checked) q = q.or('genus.is.null,collection_code.eq.FIELD');
   const { data, error } = await q.order('"catalogNumber"').limit(5000);
   if (error) { showToast(error.message, true); return; }
   const esc = v => { v = (v === null || v === undefined) ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
