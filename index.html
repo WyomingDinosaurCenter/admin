@@ -1197,10 +1197,13 @@ async function specsInit() {
   specsState.inited = true;
   // reference maps for code tiles
   const [{ data: gen }, { data: tax }] = await Promise.all([
-    db.from('genera').select('name,symbol,category'),
+    db.from('genera').select('name,symbol,category,kingdom,phylum,"class","order",family'),
     db.from('taxa').select('scientific_name,code,category')
   ]);
-  (gen || []).forEach(g => specsState.generaByName[g.name] = { symbol: g.symbol, category: g.category });
+  (gen || []).forEach(g => specsState.generaByName[g.name] = {
+    symbol: g.symbol, category: g.category, kingdom: g.kingdom, phylum: g.phylum,
+    class: g.class, order: g.order, family: g.family
+  });
   (tax || []).forEach(t => { if (!specsState.taxaByName[t.scientific_name]) specsState.taxaByName[t.scientific_name] = { code: t.code, category: t.category }; });
 
   // filter dropdowns
@@ -1318,7 +1321,38 @@ function specFieldHtml(col, label, type, options) {
   }
   if (type === 'textarea') return `<div class="spec-fg full"><label>${label}</label><textarea id="${id}"></textarea></div>`;
   const t = type === 'number' ? 'number' : (type === 'date' ? 'date' : 'text');
-  return `<div class="spec-fg"><label>${label}</label><input id="${id}" type="${t}"></div>`;
+  // Changing the scientific name re-derives the taxonomy hierarchy.
+  const extra = col === 'scientific_name' ? ' onchange="specsAutofillTaxonomy(true)"' : '';
+  return `<div class="spec-fg"><label>${label}</label><input id="${id}" type="${t}"${extra}></div>`;
+}
+
+function setFieldVal(col, v) { const e = document.getElementById(`sd2-${col}`); if (e) e.value = (v === null || v === undefined) ? '' : v; }
+
+// Derive genus, species, and the Linnaean hierarchy from the scientific name,
+// using the genera reference. `cascade` overwrites derived fields (used when the
+// scientific name changes); otherwise only fills blanks.
+function specsAutofillTaxonomy(cascade) {
+  const sci = (document.getElementById('sd2-scientific_name').value || '').trim();
+  if (!sci) return;
+  const parts = sci.split(/\s+/);
+  const genus = parts[0] || '', epithet = parts[1] || '';
+  const g = specsState.generaByName[genus];
+  const derived = {
+    genus, specific_epithet: epithet,
+    kingdom: (g && g.kingdom) || 'Animalia',
+    phylum: g && g.phylum, class: g && g.class, order: g && g.order, family: g && g.family
+  };
+  Object.entries(derived).forEach(([col, val]) => {
+    const el = document.getElementById(`sd2-${col}`); if (!el) return;
+    if (cascade || !el.value) el.value = (val === null || val === undefined) ? '' : val;
+  });
+  // Period from epoch (e.g. "Late Jurassic" → "Jurassic")
+  const ep = document.getElementById('sd2-earliest_epoch_or_lowest_series');
+  const per = document.getElementById('sd2-earliest_period_or_lowest_system');
+  if (ep && per && ep.value && (cascade || !per.value)) {
+    const w = ep.value.trim().split(/\s+/); per.value = w[w.length - 1];
+  }
+  showToast(g ? `Taxonomy filled from ${genus}` : `Genus “${genus}” not in reference — filled name only`);
 }
 
 function renderSpecDetail(occ) {
@@ -1328,7 +1362,10 @@ function renderSpecDetail(occ) {
       const fields = sec.arrays.map(([col, label]) => `<div class="spec-fg full"><label>${label}</label><input id="sd2-${col}"></div>`).join('');
       return `<details class="spec-section"><summary>${sec.title}</summary><div class="spec-fields">${fields}</div></details>`;
     }
-    const fields = sec.fields.map(f => specFieldHtml(f[0], f[1], f[2], f[3])).join('');
+    let fields = sec.fields.map(f => specFieldHtml(f[0], f[1], f[2], f[3])).join('');
+    if (sec.title.startsWith('Identification')) {
+      fields = `<div class="spec-fg full"><button class="btn btn-ghost btn-sm" type="button" onclick="specsAutofillTaxonomy(true)">↻ Auto-fill hierarchy from scientific name</button></div>` + fields;
+    }
     return `<details class="spec-section"${sec.open ? ' open' : ''}><summary>${sec.title}</summary><div class="spec-fields">${fields}</div></details>`;
   }).join('');
 
