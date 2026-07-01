@@ -396,6 +396,7 @@
   .spec-media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 20px; }
   .spec-media-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); }
   .spec-media-empty, .spec-custody-empty { font-size: .8rem; color: var(--text-dim); margin-bottom: 16px; }
+  .spec-storage-current { font-size: .84rem; margin-bottom: 8px; }
   .spec-custody { border-left: 2px solid var(--border); padding-left: 12px; margin-bottom: 16px; }
   .spec-cust-ev { position: relative; padding: 0 0 12px 2px; }
   .spec-cust-ev::before { content: ''; position: absolute; left: -18px; top: 3px; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); border: 2px solid var(--surface); }
@@ -1330,6 +1331,17 @@ function renderSpecDetail(occ) {
         <div class="spec-side">
           <h4>Photos</h4>
           <div id="spec-media"><div class="spec-media-empty">Loading…</div></div>
+          <h4>Storage location</h4>
+          <div id="spec-storage-current" class="spec-storage-current">—</div>
+          <div class="spec-cust-add" style="margin-bottom:18px">
+            <div style="display:flex;gap:6px">
+              <input id="store-cabinet" placeholder="Cabinet" style="flex:1">
+              <input id="store-drawer"  placeholder="Drawer"  style="flex:1">
+              <input id="store-shelf"   placeholder="Shelf"   style="flex:1">
+            </div>
+            <input id="store-notes" placeholder="Storage notes / materials (optional)">
+            <button class="btn btn-gold btn-sm" onclick="specsSetStorage()">Record storage location</button>
+          </div>
           <h4>Chain of custody</h4>
           <div id="spec-custody"><div class="spec-custody-empty">Loading…</div></div>
           <div class="spec-cust-add">
@@ -1401,6 +1413,15 @@ async function specsLoadMediaAndCustody(id) {
   // Custody
   const custEl = document.getElementById('spec-custody');
   const { data: events } = await db.from('custody_events').select('*').eq('occurrence_id', id).order('created_at', { ascending: true });
+  // Current storage = most recent in_storage event
+  const storeEl = document.getElementById('spec-storage-current');
+  if (storeEl) {
+    const inStore = (events || []).filter(e => e.event_type === 'in_storage');
+    const latest = inStore[inStore.length - 1];
+    storeEl.innerHTML = latest
+      ? `<b>${latest.location || '—'}</b><span class="spec-cust-meta"> · since ${new Date(latest.created_at).toLocaleDateString()}</span>`
+      : '<span class="spec-media-empty">Not in storage yet.</span>';
+  }
   if (!events || !events.length) { custEl.innerHTML = '<div class="spec-custody-empty">No custody events yet.</div>'; }
   else {
     custEl.innerHTML = `<div class="spec-custody">${events.map(e => `
@@ -1426,6 +1447,30 @@ async function specsAddCustody() {
   if (error) { showToast(error.message, true); return; }
   showToast('Custody event added');
   ['cust-handler','cust-location','cust-condition','cust-notes'].forEach(id => document.getElementById(id).value = '');
+  specsLoadMediaAndCustody(specsState.currentId);
+}
+
+// Record a storage location as an immutable "in_storage" custody event.
+async function specsSetStorage() {
+  const cab = document.getElementById('store-cabinet').value.trim();
+  const drw = document.getElementById('store-drawer').value.trim();
+  const shf = document.getElementById('store-shelf').value.trim();
+  if (!cab && !drw && !shf) { showToast('Enter at least a cabinet, drawer, or shelf', true); return; }
+  const parts = [];
+  if (cab) parts.push('Cabinet ' + cab);
+  if (drw) parts.push('Drawer ' + drw);
+  if (shf) parts.push('Shelf ' + shf);
+  const rec = {
+    occurrence_id: specsState.currentId,
+    event_type: 'in_storage',
+    location: parts.join(' · '),
+    notes: document.getElementById('store-notes').value.trim() || null,
+    created_by: currentUser?.id || null
+  };
+  const { error } = await db.from('custody_events').insert(rec);
+  if (error) { showToast(error.message, true); return; }
+  showToast('Storage location recorded');
+  ['store-cabinet','store-drawer','store-shelf','store-notes'].forEach(id => document.getElementById(id).value = '');
   specsLoadMediaAndCustody(specsState.currentId);
 }
 
