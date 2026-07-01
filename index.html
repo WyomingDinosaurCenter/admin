@@ -352,6 +352,74 @@
   .gps-pick-note.on { display: block; }
   .leaflet-container.picking { cursor: crosshair !important; }
 
+  /* ── Specimens page ── */
+  .specs-filterbar { display: flex; align-items: center; gap: 10px; padding: 12px 24px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .specs-filterbar select, .specs-search { padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: .82rem; background: var(--surface); color: var(--text); height: 34px; outline: none; }
+  .specs-filterbar select:focus, .specs-search:focus { border-color: var(--gold); }
+  .specs-search { width: 260px; }
+  .specs-note { padding: 12px 24px; font-size: .82rem; color: var(--text-dim); background: var(--surface); border-bottom: 1px solid var(--border); }
+
+  .spec-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+  .spec-table th { position: sticky; top: 0; background: var(--bg); text-align: left; padding: 9px 14px; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); border-bottom: 1px solid var(--border); cursor: pointer; user-select: none; }
+  .spec-table td { padding: 9px 14px; border-bottom: 1px solid var(--border); }
+  .spec-table tbody tr { cursor: pointer; }
+  .spec-table tbody tr:hover { background: var(--bg); }
+  .spec-cat { font-weight: 700; }
+  .spec-empty { padding: 48px; text-align: center; color: var(--text-dim); }
+  .spec-stage { font-size: .68rem; padding: 1px 8px; border-radius: 10px; background: var(--border); color: var(--text-dim); text-transform: capitalize; }
+  .spec-stage.CATALOG { background: #dff0df; color: var(--success); }
+  .spec-stage.FIELD { background: #fdeecf; color: var(--warning); }
+  .spec-loadmore { display: block; width: calc(100% - 48px); margin: 12px 24px; }
+
+  /* Detail view */
+  .spec-detail-head { display: flex; align-items: center; gap: 14px; padding: 14px 24px; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 5; }
+  .spec-detail-title { font-size: 1.15rem; font-weight: 700; }
+  .spec-detail-sub { font-size: .78rem; color: var(--text-dim); }
+  .spec-detail-body { padding: 16px 24px 60px; max-width: 1000px; }
+  .spec-cols { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .spec-cols { grid-template-columns: 1fr; } }
+  .spec-section { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; background: var(--surface); overflow: hidden; }
+  .spec-section > summary { padding: 11px 14px; font-weight: 600; font-size: .88rem; cursor: pointer; list-style: none; display: flex; align-items: center; justify-content: space-between; }
+  .spec-section > summary::-webkit-details-marker { display: none; }
+  .spec-section > summary::after { content: '▸'; color: var(--text-dim); transition: transform .15s; }
+  .spec-section[open] > summary::after { transform: rotate(90deg); }
+  .spec-fields { padding: 4px 14px 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .spec-fg { display: flex; flex-direction: column; gap: 3px; }
+  .spec-fg.full { grid-column: 1 / -1; }
+  .spec-fg label { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-dim); }
+  .spec-fg input, .spec-fg select, .spec-fg textarea { padding: 7px 9px; border: 1px solid var(--border); border-radius: 7px; font-size: .84rem; background: var(--surface); color: var(--text); outline: none; font-family: inherit; }
+  .spec-fg input:focus, .spec-fg select:focus, .spec-fg textarea:focus { border-color: var(--gold); }
+  .spec-fg textarea { min-height: 52px; resize: vertical; }
+
+  /* Side column: media + custody */
+  .spec-side h4 { font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); margin: 4px 0 8px; }
+  .spec-media-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 20px; }
+  .spec-media-grid img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); }
+  .spec-media-empty, .spec-custody-empty { font-size: .8rem; color: var(--text-dim); margin-bottom: 16px; }
+  .spec-custody { border-left: 2px solid var(--border); padding-left: 12px; margin-bottom: 16px; }
+  .spec-cust-ev { position: relative; padding: 0 0 12px 2px; }
+  .spec-cust-ev::before { content: ''; position: absolute; left: -18px; top: 3px; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); border: 2px solid var(--surface); }
+  .spec-cust-type { font-weight: 600; font-size: .82rem; text-transform: capitalize; }
+  .spec-cust-meta { font-size: .72rem; color: var(--text-dim); }
+  .spec-cust-add { display: flex; flex-direction: column; gap: 6px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; }
+  .spec-cust-add select, .spec-cust-add input { padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; font-size: .8rem; background: var(--surface); color: var(--text); }
+
+  /* Intake scaffold */
+  .specs-intake { max-width: 620px; margin: 30px auto; padding: 0 24px; }
+  .specs-intake h3 { font-size: 1.2rem; color: var(--primary); margin-bottom: 8px; }
+  .specs-intake p { font-size: .9rem; color: var(--text); margin-bottom: 16px; }
+  .specs-intake-drop { border: 2px dashed var(--border); border-radius: 12px; padding: 40px; text-align: center; color: var(--text-dim); cursor: pointer; transition: border-color .15s; }
+  .specs-intake-drop:hover { border-color: var(--gold); }
+  .specs-intake-icon { font-size: 2rem; margin-bottom: 8px; }
+  .specs-intake-hint { font-size: .75rem; margin-top: 8px; }
+  .specs-intake-note { font-size: .78rem; color: var(--text-dim); margin-top: 16px; font-style: italic; }
+
+  /* Lightbox */
+  #spec-lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 500; align-items: center; justify-content: center; }
+  #spec-lightbox.open { display: flex; }
+  #spec-lightbox img { max-width: 92vw; max-height: 92vh; border-radius: 6px; }
+  #spec-lightbox .lb-close { position: absolute; top: 18px; right: 24px; color: #fff; font-size: 1.6rem; cursor: pointer; background: none; border: none; }
+
   /* ── Info tab ── */
   .info-page { max-width: 640px; margin: 40px auto; padding: 0 24px; }
   .info-page h2 { font-size: 1.3rem; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
@@ -501,32 +569,59 @@
 
   <!-- SPECIMENS TAB (Intake + Catalog live here) -->
   <div class="tab-view" id="tab-specimens">
-    <div class="subtab-bar">
-      <div class="subtab active" data-subtab="browse"  onclick="switchSubtab('browse')">All Specimens</div>
-      <div class="subtab"        data-subtab="intake"  onclick="switchSubtab('intake')">Intake</div>
-      <div class="subtab"        data-subtab="catalog" onclick="switchSubtab('catalog')">Catalog</div>
-    </div>
 
-    <div class="subtab-view active" id="subtab-browse">
-      <div class="placeholder">
-        Specimens — coming soon
-        <span class="ph-sub">Browse and search all specimen records across field, lab, and collections.</span>
+    <!-- Browse / list view -->
+    <div id="specs-browse-wrap">
+      <div class="subtab-bar">
+        <div class="subtab active" data-subtab="browse"  onclick="switchSubtab('browse')">All Specimens</div>
+        <div class="subtab"        data-subtab="catalog" onclick="switchSubtab('catalog')">Catalog</div>
+        <div class="subtab"        data-subtab="intake"  onclick="switchSubtab('intake')">Intake</div>
+      </div>
+
+      <!-- ALL SPECIMENS -->
+      <div class="subtab-view active" id="subtab-browse">
+        <div class="specs-filterbar">
+          <input class="specs-search" id="specs-search" placeholder="Search catalog #, taxon, element…" oninput="specsDebouncedSearch()">
+          <select id="specs-f-site"       onchange="specsLoad()"><option value="">All sites</option></select>
+          <select id="specs-f-formation"  onchange="specsLoad()"><option value="">All formations</option></select>
+          <select id="specs-f-taxon"      onchange="specsLoad()"><option value="">All taxa</option></select>
+          <select id="specs-f-collection" onchange="specsLoad()">
+            <option value="">Any stage</option>
+            <option value="FIELD">Field</option>
+            <option value="PREP">Prep</option>
+            <option value="CATALOG">Cataloged</option>
+          </select>
+          <span style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="specsLoad()">↻ Refresh</button>
+            <button class="btn btn-ghost btn-sm" onclick="specsExportCsv()">⇩ Export CSV</button>
+          </span>
+        </div>
+        <div id="specs-list"></div>
+      </div>
+
+      <!-- CATALOG QUEUE -->
+      <div class="subtab-view" id="subtab-catalog">
+        <div class="specs-note">Cataloging queue — specimens not yet fully cataloged (no genus assigned, or still marked <b>Field</b>). Open one to complete its Darwin Core record.</div>
+        <div id="specs-catalog-list"></div>
+      </div>
+
+      <!-- INTAKE (scaffold) -->
+      <div class="subtab-view" id="subtab-intake">
+        <div class="specs-intake">
+          <h3>Collections Intake</h3>
+          <p>Digitize the paper field-sheet archive with VLM-assisted scanning. Upload a sheet (or a batch), review the confidence-scored fields, then commit each record to the collection.</p>
+          <div class="specs-intake-drop" onclick="showToast('VLM intake is a later phase — scaffold only')">
+            <div class="specs-intake-icon">⇪</div>
+            <div>Drop field-sheet images here, or click to select</div>
+            <div class="specs-intake-hint">Single-sheet and batch modes · VLM extraction · human review before commit</div>
+          </div>
+          <p class="specs-intake-note">Phase 1b — not yet wired to a vision model. This scaffold reserves the workflow and layout.</p>
+        </div>
       </div>
     </div>
 
-    <div class="subtab-view" id="subtab-intake">
-      <div class="placeholder">
-        Intake — coming soon
-        <span class="ph-sub">Digitize paper field sheets with VLM-assisted scanning; review each record before it is committed.</span>
-      </div>
-    </div>
-
-    <div class="subtab-view" id="subtab-catalog">
-      <div class="placeholder">
-        Catalog — coming soon
-        <span class="ph-sub">Complete the Darwin Core record: taxonomy, formation/member/bed, catalog number, storage, and export.</span>
-      </div>
-    </div>
+    <!-- Detail view (shown when a specimen is opened) -->
+    <div id="specs-detail" style="display:none"></div>
   </div>
 
   <!-- INFO TAB (Links + Reference Data) -->
@@ -694,6 +789,11 @@
   </div>
 </div>
 
+<div id="spec-lightbox" onclick="if(event.target===this)specLightbox()">
+  <button class="lb-close" onclick="specLightbox()">✕</button>
+  <img id="spec-lightbox-img" src="" alt="">
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -729,6 +829,7 @@ function switchTab(name) {
   document.getElementById(`tab-${name}`).classList.add('active');
   document.querySelector(`[data-tab="${name}"]`).classList.add('active');
   if (name === 'sites') sitesInit();
+  if (name === 'specimens') specsInit();
 }
 
 // Sub-tabs within a top-level tab (Specimens: Intake/Catalog; Info: Links/Reference Data).
@@ -740,6 +841,8 @@ function switchSubtab(name) {
   tab.querySelector(`#subtab-${name}`).classList.add('active');
   tab.querySelector(`[data-subtab="${name}"]`).classList.add('active');
   if (name === 'info-ref' && !refState.loaded) refSelect(refState.type);
+  if (name === 'catalog') specsLoad('catalog');
+  if (name === 'browse') specsLoad('all');
 }
 
 // ── AUTH ──────────────────────────────────────────────────────
@@ -1006,6 +1109,359 @@ function copyInviteLink() {
   navigator.clipboard.writeText(input.value)
     .then(() => showToast('Link copied'))
     .catch(() => { input.select(); document.execCommand('copy'); showToast('Link copied'); });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SPECIMENS PAGE  (browse · detail/catalog · media · custody · intake)
+// ══════════════════════════════════════════════════════════════
+const SPEC_PAGE = 25;
+const NOT_NULL_COLS = ['catalogNumber', 'institution_code', 'basis_of_record'];
+const CUSTODY_TYPES = ['collected','field_jacketed','transferred_to_lab','in_preparation','preparation_complete','cataloged','in_storage','on_loan','returned','on_exhibit','condition_note','other'];
+
+// Detail form layout. Each field: [column, label, type, options?]
+const SPEC_SECTIONS = [
+  { title: 'Cataloging', open: true, fields: [
+    ['catalogNumber','Catalog number','text'], ['collection_code','Stage','select',['FIELD','PREP','CATALOG']],
+    ['type_status','Type status','select',['','holotype','paratype','lectotype','neotype','syntype','referred specimen']],
+    ['institution_code','Institution','text'], ['basis_of_record','Basis of record','text'], ['occurrence_id','Occurrence ID (external)','text']
+  ]},
+  { title: 'Identification & Taxonomy', open: true, fields: [
+    ['scientific_name','Scientific name','text'], ['identified_by','Identified by','text'],
+    ['kingdom','Kingdom','text'], ['phylum','Phylum','text'], ['class','Class','text'], ['order','Order','text'],
+    ['family','Family','text'], ['genus','Genus','text'], ['specific_epithet','Specific epithet','text'],
+    ['identification_remarks','Identification remarks','textarea'], ['taxon_remarks','Taxon remarks','textarea']
+  ]},
+  { title: 'Event & Collectors', fields: [
+    ['eventDate','Event date','date'], ['recordedBy','Recorded by','text'], ['intern_staff','Intern / staff','text'], ['event_remarks','Event remarks','textarea']
+  ]},
+  { title: 'Location', fields: [
+    ['verbatim_locality','Verbatim locality','text'], ['decimal_latitude','Latitude','number'], ['decimal_longitude','Longitude','number'], ['verbatim_coordinates','Verbatim coordinates','text']
+  ]},
+  { title: 'Geological Context', fields: [
+    ['formation','Formation','text'], ['member','Member','text'], ['bed','Bed','text'],
+    ['earliest_period_or_lowest_system','Earliest period','text'], ['earliest_epoch_or_lowest_series','Earliest epoch','text'],
+    ['lowest_biostratigraphic_zone','Biostratigraphic zone','text'], ['lithologic_description','Lithologic description','textarea']
+  ]},
+  { title: 'Element & Condition', fields: [
+    ['verbatim_element','Element','text'], ['element_side','Side','text'], ['element_remarks','Element remarks','text'],
+    ['in_situ','In situ','text'], ['approx_position_known','Approx. position known','text'],
+    ['bone_missing_pct','% bone missing','text'], ['pre_depositional_pct','% pre-depositional','text']
+  ]},
+  { title: 'Measurements', fields: [
+    ['orientation_degrees','Orientation (°)','number'], ['plunge_degrees','Plunge (°)','number'],
+    ['max_length_cm','Max length (cm)','number'], ['mid_width_cm','Mid width (cm)','number']
+  ]},
+  { title: 'Removal & Handling', fields: [
+    ['date_collected','Date collected','date'], ['collected_by','Collected by','text'], ['removal_method','Removal method','text'],
+    ['temp_storage_location','Temporary storage','text'], ['collection_date','Facility intake date','date'], ['staff_signature','Staff signature','text']
+  ]},
+  { title: 'Occurrence Notes', fields: [
+    ['occurrence_remarks','Occurrence remarks','textarea'], ['associated_occurrences','Associated occurrences','text']
+  ]},
+  { title: 'Lists (comma-separated)', arrays: [
+    ['preparations','Preparations'], ['chemicals_applied','Chemicals applied'],
+    ['current_condition','Current condition'], ['pre_depositional_condition','Pre-depositional condition']
+  ]}
+];
+
+const specsState = { inited: false, taxaByName: {}, generaByName: {}, mode: 'all',
+  offset: 0, allLoaded: false, searchTimer: null, currentId: null };
+
+function specsSpeciesInfo(name) {
+  const t = specsState.taxaByName[name];
+  const g = specsState.generaByName[(name||'').split(' ')[0]];
+  return { code: (t && t.code) || code22(name || ''), category: (t && t.category) || (g && g.category) || 'uncertain' };
+}
+
+async function specsInit() {
+  if (specsState.inited) return;
+  specsState.inited = true;
+  // reference maps for code tiles
+  const [{ data: gen }, { data: tax }] = await Promise.all([
+    db.from('genera').select('name,symbol,category'),
+    db.from('taxa').select('scientific_name,code,category')
+  ]);
+  (gen || []).forEach(g => specsState.generaByName[g.name] = { symbol: g.symbol, category: g.category });
+  (tax || []).forEach(t => { if (!specsState.taxaByName[t.scientific_name]) specsState.taxaByName[t.scientific_name] = { code: t.code, category: t.category }; });
+
+  // filter dropdowns
+  const [{ data: sites }, { data: forms }] = await Promise.all([
+    db.from('locations').select('id,site_code,site_name').order('site_code'),
+    db.from('formations').select('name').eq('is_active', true).order('display_order')
+  ]);
+  const siteSel = document.getElementById('specs-f-site');
+  siteSel.innerHTML = '<option value="">All sites</option>' + (sites||[]).map(s => `<option value="${s.id}">${s.site_code}${s.site_name ? ' — '+s.site_name : ''}</option>`).join('');
+  const fSel = document.getElementById('specs-f-formation');
+  fSel.innerHTML = '<option value="">All formations</option>' + (forms||[]).map(f => `<option value="${f.name}">${f.name}</option>`).join('');
+  const taxa = Object.keys(specsState.taxaByName).filter(n => n && n !== 'Indeterminate' && n !== 'Other').sort();
+  const tSel = document.getElementById('specs-f-taxon');
+  tSel.innerHTML = '<option value="">All taxa</option>' + taxa.map(n => `<option value="${n}">${n}</option>`).join('');
+
+  specsLoad('all');
+}
+
+const SPEC_SELECT = 'id,"catalogNumber",scientific_name,genus,type_status,verbatim_element,"eventDate",collection_code,sync_status,location_id,formation,locations(site_code,site_name)';
+
+function specsBuildQuery(forCount) {
+  let q = db.from('occurrences').select(SPEC_SELECT);
+  const site = document.getElementById('specs-f-site').value;
+  const form = document.getElementById('specs-f-formation').value;
+  const taxon = document.getElementById('specs-f-taxon').value;
+  const coll = document.getElementById('specs-f-collection').value;
+  const search = (document.getElementById('specs-search').value || '').replace(/[,()*%"]/g, '').trim();
+  if (site) q = q.eq('location_id', site);
+  if (form) q = q.eq('formation', form);
+  if (taxon) q = q.eq('scientific_name', taxon);
+  if (coll) q = q.eq('collection_code', coll);
+  if (specsState.mode === 'catalog') q = q.or('genus.is.null,collection_code.eq.FIELD');
+  else if (search) q = q.or(`"catalogNumber".ilike.*${search}*,scientific_name.ilike.*${search}*,verbatim_element.ilike.*${search}*,genus.ilike.*${search}*`);
+  return q.order('created_at', { ascending: false });
+}
+
+async function specsLoad(mode) {
+  if (mode) specsState.mode = mode;
+  specsState.offset = 0; specsState.allLoaded = false;
+  const container = specsState.mode === 'catalog' ? document.getElementById('specs-catalog-list') : document.getElementById('specs-list');
+  container.innerHTML = '<div class="spec-empty">Loading…</div>';
+  const { data, error } = await specsBuildQuery().range(0, SPEC_PAGE - 1);
+  if (error) { container.innerHTML = `<div class="spec-empty" style="color:var(--danger)">${error.message}</div>`; return; }
+  specsState.offset = (data || []).length;
+  specsState.allLoaded = (data || []).length < SPEC_PAGE;
+  renderSpecTable(container, data || [], false);
+}
+
+async function specsLoadMore() {
+  const container = specsState.mode === 'catalog' ? document.getElementById('specs-catalog-list') : document.getElementById('specs-list');
+  const { data } = await specsBuildQuery().range(specsState.offset, specsState.offset + SPEC_PAGE - 1);
+  specsState.offset += (data || []).length;
+  specsState.allLoaded = (data || []).length < SPEC_PAGE;
+  renderSpecTable(container, data || [], true);
+}
+
+function specsDebouncedSearch() {
+  clearTimeout(specsState.searchTimer);
+  specsState.searchTimer = setTimeout(() => specsLoad('all'), 300);
+}
+
+function renderSpecTable(container, rows, append) {
+  if (!append && !rows.length) { container.innerHTML = '<div class="spec-empty">No specimens match.</div>'; return; }
+  const body = rows.map(o => {
+    const { code, category } = specsSpeciesInfo(o.scientific_name);
+    const stage = o.collection_code || 'FIELD';
+    return `<tr onclick="specsOpen('${o.id}')">
+      <td><span class="flagtip-code cat-${category}">${code}</span></td>
+      <td><b>${o.catalogNumber || '—'}</b></td>
+      <td>${o.scientific_name || '<i style="color:var(--text-dim)">unidentified</i>'}</td>
+      <td>${o.verbatim_element || '—'}</td>
+      <td>${o.locations ? o.locations.site_code : '—'}</td>
+      <td>${o.eventDate || '—'}</td>
+      <td><span class="spec-stage ${stage}">${stage.toLowerCase()}</span></td>
+    </tr>`;
+  }).join('');
+  if (append) {
+    document.getElementById('spec-loadmore')?.remove();
+    container.querySelector('tbody')?.insertAdjacentHTML('beforeend', body);
+  } else {
+    container.innerHTML = `<table class="spec-table"><thead><tr>
+      <th>Code</th><th>Catalog #</th><th>Taxon</th><th>Element</th><th>Site</th><th>Date</th><th>Stage</th>
+    </tr></thead><tbody>${body}</tbody></table>`;
+  }
+  if (!specsState.allLoaded) {
+    const btn = document.createElement('button');
+    btn.id = 'spec-loadmore'; btn.className = 'btn btn-ghost spec-loadmore';
+    btn.textContent = 'Load more…'; btn.onclick = specsLoadMore;
+    container.appendChild(btn);
+  }
+}
+
+// ── Detail view ───────────────────────────────────────────────
+async function specsOpen(id) {
+  specsState.currentId = id;
+  const { data: occ, error } = await db.from('occurrences').select('*, locations(site_code,site_name)').eq('id', id).single();
+  if (error || !occ) { showToast('Could not load specimen', true); return; }
+  document.getElementById('specs-browse-wrap').style.display = 'none';
+  const el = document.getElementById('specs-detail');
+  el.style.display = 'block';
+  renderSpecDetail(occ);
+  specsLoadMediaAndCustody(id);
+}
+
+function specsBack() {
+  document.getElementById('specs-detail').style.display = 'none';
+  document.getElementById('specs-browse-wrap').style.display = 'block';
+  specsLoad(specsState.mode); // refresh list to reflect edits
+}
+
+function specFieldHtml(col, label, type, options) {
+  const id = `sd2-${col}`;
+  if (type === 'select') {
+    const opts = options.map(o => `<option value="${o}">${o || '—'}</option>`).join('');
+    return `<div class="spec-fg"><label>${label}</label><select id="${id}">${opts}</select></div>`;
+  }
+  if (type === 'textarea') return `<div class="spec-fg full"><label>${label}</label><textarea id="${id}"></textarea></div>`;
+  const t = type === 'number' ? 'number' : (type === 'date' ? 'date' : 'text');
+  return `<div class="spec-fg"><label>${label}</label><input id="${id}" type="${t}"></div>`;
+}
+
+function renderSpecDetail(occ) {
+  const { code, category } = specsSpeciesInfo(occ.scientific_name);
+  const sections = SPEC_SECTIONS.map(sec => {
+    if (sec.arrays) {
+      const fields = sec.arrays.map(([col, label]) => `<div class="spec-fg full"><label>${label}</label><input id="sd2-${col}"></div>`).join('');
+      return `<details class="spec-section"><summary>${sec.title}</summary><div class="spec-fields">${fields}</div></details>`;
+    }
+    const fields = sec.fields.map(f => specFieldHtml(f[0], f[1], f[2], f[3])).join('');
+    return `<details class="spec-section"${sec.open ? ' open' : ''}><summary>${sec.title}</summary><div class="spec-fields">${fields}</div></details>`;
+  }).join('');
+
+  document.getElementById('specs-detail').innerHTML = `
+    <div class="spec-detail-head">
+      <button class="btn btn-ghost btn-sm" onclick="specsBack()">← Back</button>
+      <span class="flagtip-code cat-${category}" style="font-size:.8rem">${code}</span>
+      <div style="flex:1">
+        <div class="spec-detail-title">${occ.catalogNumber || 'Specimen'}</div>
+        <div class="spec-detail-sub">${occ.scientific_name || 'unidentified'} · ${occ.locations ? occ.locations.site_code : '—'}</div>
+      </div>
+      <button class="btn btn-primary" onclick="specsSave()">Save changes</button>
+    </div>
+    <div class="spec-detail-body">
+      <div class="spec-cols">
+        <div class="spec-main">${sections}</div>
+        <div class="spec-side">
+          <h4>Photos</h4>
+          <div id="spec-media"><div class="spec-media-empty">Loading…</div></div>
+          <h4>Chain of custody</h4>
+          <div id="spec-custody"><div class="spec-custody-empty">Loading…</div></div>
+          <div class="spec-cust-add">
+            <select id="cust-type">${CUSTODY_TYPES.map(t=>`<option value="${t}">${t.replace(/_/g,' ')}</option>`).join('')}</select>
+            <input id="cust-handler" placeholder="Handler / institution">
+            <input id="cust-location" placeholder="Location">
+            <input id="cust-condition" placeholder="Condition">
+            <input id="cust-notes" placeholder="Notes">
+            <button class="btn btn-gold btn-sm" onclick="specsAddCustody()">+ Add custody event</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  // populate field values
+  SPEC_SECTIONS.forEach(sec => {
+    (sec.fields || []).forEach(([col]) => {
+      const elx = document.getElementById(`sd2-${col}`);
+      if (!elx) return;
+      let v = occ[col];
+      if (col === 'eventDate' || col === 'date_collected' || col === 'collection_date' || col === 'date_mapped' || col === 'physical_map_date') v = v ? String(v).slice(0,10) : '';
+      elx.value = (v === null || v === undefined) ? '' : v;
+    });
+    (sec.arrays || []).forEach(([col]) => {
+      const elx = document.getElementById(`sd2-${col}`);
+      if (elx) elx.value = Array.isArray(occ[col]) ? occ[col].join(', ') : (occ[col] || '');
+    });
+  });
+}
+
+async function specsSave() {
+  const payload = {};
+  SPEC_SECTIONS.forEach(sec => {
+    (sec.fields || []).forEach(([col, , type]) => {
+      const elx = document.getElementById(`sd2-${col}`); if (!elx) return;
+      let v = elx.value;
+      if (type === 'number') { v = v === '' ? null : parseFloat(v); }
+      else { v = (typeof v === 'string' ? v.trim() : v); if (v === '') v = null; }
+      if (v === null && NOT_NULL_COLS.includes(col)) return; // don't null a required column
+      payload[col] = v;
+    });
+    (sec.arrays || []).forEach(([col]) => {
+      const elx = document.getElementById(`sd2-${col}`); if (!elx) return;
+      payload[col] = elx.value.split(',').map(s => s.trim()).filter(Boolean);
+    });
+  });
+  payload.updated_at = new Date().toISOString();
+  const { error } = await db.from('occurrences').update(payload).eq('id', specsState.currentId);
+  if (error) { showToast(error.message, true); return; }
+  showToast('Specimen saved');
+  // refresh header/tiles
+  const { data: occ } = await db.from('occurrences').select('*, locations(site_code,site_name)').eq('id', specsState.currentId).single();
+  if (occ) renderSpecDetail(occ), specsLoadMediaAndCustody(specsState.currentId);
+}
+
+async function specsLoadMediaAndCustody(id) {
+  // Media
+  const mediaEl = document.getElementById('spec-media');
+  const { data: media } = await db.from('media').select('*').eq('occurrence_id', id).order('sequence_number');
+  if (!media || !media.length) { mediaEl.innerHTML = '<div class="spec-media-empty">No photos.</div>'; }
+  else {
+    const paths = media.map(m => m.storage_path);
+    const { data: signed } = await db.storage.from('media').createSignedUrls(paths, 3600);
+    const urlByPath = {}; (signed || []).forEach(s => { if (s.signedUrl) urlByPath[s.path] = s.signedUrl; });
+    mediaEl.innerHTML = `<div class="spec-media-grid">${media.map(m => {
+      const u = urlByPath[m.storage_path]; return u ? `<img src="${u}" alt="${m.filename}" onclick="specLightbox('${u}')">` : '';
+    }).join('')}</div>`;
+  }
+  // Custody
+  const custEl = document.getElementById('spec-custody');
+  const { data: events } = await db.from('custody_events').select('*').eq('occurrence_id', id).order('created_at', { ascending: true });
+  if (!events || !events.length) { custEl.innerHTML = '<div class="spec-custody-empty">No custody events yet.</div>'; }
+  else {
+    custEl.innerHTML = `<div class="spec-custody">${events.map(e => `
+      <div class="spec-cust-ev">
+        <div class="spec-cust-type">${(e.event_type||'').replace(/_/g,' ')}</div>
+        <div class="spec-cust-meta">${new Date(e.created_at).toLocaleDateString()}${e.handler ? ' · '+e.handler : ''}${e.location ? ' · '+e.location : ''}${e.condition ? ' · '+e.condition : ''}</div>
+        ${e.notes ? `<div class="spec-cust-meta">${e.notes}</div>` : ''}
+      </div>`).join('')}</div>`;
+  }
+}
+
+async function specsAddCustody() {
+  const rec = {
+    occurrence_id: specsState.currentId,
+    event_type: document.getElementById('cust-type').value,
+    handler: document.getElementById('cust-handler').value.trim() || null,
+    location: document.getElementById('cust-location').value.trim() || null,
+    condition: document.getElementById('cust-condition').value.trim() || null,
+    notes: document.getElementById('cust-notes').value.trim() || null,
+    created_by: currentUser?.id || null
+  };
+  const { error } = await db.from('custody_events').insert(rec);
+  if (error) { showToast(error.message, true); return; }
+  showToast('Custody event added');
+  ['cust-handler','cust-location','cust-condition','cust-notes'].forEach(id => document.getElementById(id).value = '');
+  specsLoadMediaAndCustody(specsState.currentId);
+}
+
+function specLightbox(src) {
+  const lb = document.getElementById('spec-lightbox');
+  if (src) { document.getElementById('spec-lightbox-img').src = src; lb.classList.add('open'); }
+  else { lb.classList.remove('open'); document.getElementById('spec-lightbox-img').src = ''; }
+}
+
+// ── Darwin Core CSV export of the filtered set ────────────────
+async function specsExportCsv() {
+  showToast('Preparing export…');
+  const cols = [
+    ['catalogNumber','catalogNumber'],['scientific_name','scientificName'],['genus','genus'],['specific_epithet','specificEpithet'],
+    ['type_status','typeStatus'],['recordedBy','recordedBy'],['eventDate','eventDate'],['verbatim_element','element'],
+    ['formation','formation'],['member','member'],['bed','bed'],['earliest_epoch_or_lowest_series','earliestEpochOrLowestSeries'],
+    ['decimal_latitude','decimalLatitude'],['decimal_longitude','decimalLongitude'],['verbatim_locality','verbatimLocality'],
+    ['institution_code','institutionCode'],['collection_code','collectionCode'],['basis_of_record','basisOfRecord']
+  ];
+  const sel = 'id,' + cols.map(c => /[A-Z]/.test(c[0]) ? `"${c[0]}"` : c[0]).join(',') + ',locations(site_code)';
+  let q = db.from('occurrences').select(sel);
+  const site = document.getElementById('specs-f-site').value, form = document.getElementById('specs-f-formation').value,
+        taxon = document.getElementById('specs-f-taxon').value, coll = document.getElementById('specs-f-collection').value;
+  if (site) q = q.eq('location_id', site); if (form) q = q.eq('formation', form);
+  if (taxon) q = q.eq('scientific_name', taxon); if (coll) q = q.eq('collection_code', coll);
+  if (specsState.mode === 'catalog') q = q.or('genus.is.null,collection_code.eq.FIELD');
+  const { data, error } = await q.order('"catalogNumber"').limit(5000);
+  if (error) { showToast(error.message, true); return; }
+  const esc = v => { v = (v === null || v === undefined) ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g,'""') + '"' : v; };
+  const header = ['siteCode', ...cols.map(c => c[1])];
+  const lines = [header.join(',')].concat((data||[]).map(r => [r.locations?.site_code || '', ...cols.map(c => esc(r[c[0]]))].join(',')));
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `wdc-occurrences-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  URL.revokeObjectURL(a.href);
+  showToast(`Exported ${(data||[]).length} records`);
 }
 
 // ══════════════════════════════════════════════════════════════
