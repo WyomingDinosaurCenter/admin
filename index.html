@@ -270,6 +270,7 @@
   .ref-badge { font-size: .68rem; padding: 1px 8px; border-radius: 10px; background: var(--border); color: var(--text-dim); }
   .ref-badge.on { background: #dff0df; color: var(--success); }
   .ref-empty { padding: 40px; text-align: center; color: var(--text-dim); font-size: .9rem; }
+  .ref-diet { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--diet, #8A7060); margin-right: 6px; vertical-align: middle; }
   .ref-icon-preview { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; border-radius: 4px; background: var(--bg); }
   .ref-link-btn { background: none; border: none; color: var(--gold); font-weight: 600; font-size: .8rem; cursor: pointer; padding: 3px 6px; }
   .ref-link-btn.danger { color: var(--danger); }
@@ -307,24 +308,38 @@
   .site-item-meta { font-size: .7rem; color: var(--text-dim); margin-top: 3px; display: flex; gap: 8px; }
   .site-item.archived .site-item-code::after { content: ' · archived'; font-weight: 400; color: var(--warning); font-size: .7rem; }
 
-  /* Map flags */
+  /* Diet category colors (border) */
+  .cat-carnivore { --diet: #C0392B; }
+  .cat-herbivore { --diet: #2E7D32; }
+  .cat-omnivore  { --diet: #F9A825; }
+  .cat-uncertain { --diet: #8A7060; }
+
+  /* Map flags — periodic-table style letter tiles */
   .site-flag-icon { background: transparent; border: none; }
-  .site-flags { display: flex; align-items: flex-end; justify-content: center; gap: 2px; transform: translateY(-6px); filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
-  .site-flag { position: relative; width: 30px; height: 30px; }
-  .site-flag img { width: 30px; height: 30px; object-fit: contain; }
-  .site-flag-count {
-    position: absolute; top: -5px; right: -5px; min-width: 15px; height: 15px; padding: 0 3px;
+  .site-flags { display: flex; align-items: flex-end; justify-content: center; gap: 3px; transform: translateY(-6px); filter: drop-shadow(0 1px 3px rgba(0,0,0,.45)); }
+  .dino-tile {
+    position: relative; width: 36px; height: 36px; box-sizing: border-box;
+    background: #FAF7F2; border: 3px solid var(--diet, #8A7060); border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dino-sym { font-size: .72rem; font-weight: 800; letter-spacing: .01em; color: #2C2018; line-height: 1; }
+  .dino-count {
+    position: absolute; top: -6px; right: -6px; min-width: 15px; height: 15px; padding: 0 3px;
     background: var(--primary); color: #fff; border: 1.5px solid #fff; border-radius: 8px;
     font-size: .6rem; font-weight: 700; line-height: 12px; text-align: center;
   }
   .site-flag-more { align-self: center; font-size: .7rem; font-weight: 700; color: #fff; background: var(--primary); border-radius: 8px; padding: 1px 5px; }
-  .site-pin-dot { width: 8px; height: 8px; background: var(--gold); border: 2px solid #fff; border-radius: 50%; margin: 0 auto; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
+  .site-pin-dot { width: 8px; height: 8px; background: var(--gold); border: 2px solid #fff; border-radius: 50%; margin: 4px auto 0; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
 
   .flagtip { font-size: .8rem; }
   .flagtip-title { font-weight: 700; margin-bottom: 4px; }
   .flagtip-row { display: flex; align-items: center; gap: 6px; padding: 1px 0; }
-  .flagtip-row img { width: 18px; height: 18px; object-fit: contain; }
   .flagtip-count { color: var(--text-dim); }
+  .flagtip-code, .site-species-chip .flagtip-code {
+    display: inline-block; min-width: 30px; text-align: center; font-weight: 800; font-size: .66rem;
+    color: #2C2018; background: #FAF7F2; border: 2px solid var(--diet, #8A7060);
+    border-radius: 5px; padding: 1px 4px;
+  }
 
   .sites-detail-title { font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
   .sites-detail-hint { font-size: .75rem; color: var(--text-dim); margin-bottom: 12px; }
@@ -527,6 +542,7 @@
         <div class="ref-toolbar">
           <div class="ref-type-tabs">
             <button class="ref-type active" data-ref="formations"   onclick="refSelect('formations')">Formations</button>
+            <button class="ref-type"        data-ref="genera"        onclick="refSelect('genera')">Genera</button>
             <button class="ref-type"        data-ref="taxa"          onclick="refSelect('taxa')">Taxa</button>
             <button class="ref-type"        data-ref="elements"      onclick="refSelect('elements')">Elements</button>
             <button class="ref-type"        data-ref="vocabularies"  onclick="refSelect('vocabularies')">Vocabularies</button>
@@ -996,27 +1012,43 @@ function copyInviteLink() {
 //  SITES PAGE  (map · flags · filters · details / create-edit)
 // ══════════════════════════════════════════════════════════════
 const FORMATION_FALLBACK = ['Morrison','Lance','Hell Creek','Cloverly','Frontier','Mowry','Other'];
-const DINO_ICON = slug => `assets/dino/${slug}.png`;
-const DINO_FALLBACK = 'assets/dino/_fallback.png';
-const MAX_FLAGS = 4; // flags shown before "+N" on a marker
+const MAX_FLAGS = 4; // tiles shown before "+N" on a marker
 
 const sitesState = {
   inited: false, map: null, minimap: null, markerLayer: null,
   baseLayers: {}, geologyLayer: null, currentBase: 'satellite',
   formations: [],          // [{id,name}]
-  taxaBySlug: {},          // icon_slug -> {scientific_name, icon_slug}
-  taxaByName: {},          // scientific_name -> icon_slug
+  taxaByName: {},          // scientific_name -> {code, category}
+  generaByName: {},        // genus name -> {symbol, category}
   sites: [],               // locations rows for the formation
   countsBySite: {},        // siteId -> { species: {count, catalogs:[]} }
   selectedId: null,
   picking: false
 };
 
-function sitesSlug(name) { return (name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
-function iconForSpecies(name) {
-  if (!name) return DINO_FALLBACK;
-  const slug = sitesState.taxaByName[name] || sitesSlug(name);
-  return slug ? DINO_ICON(slug) : DINO_FALLBACK;
+// Derive a USDA-style 2+2 code from a scientific name (fallback when not in taxa).
+function code22(name) {
+  const parts = (name || '').trim().split(/\s+/);
+  const g = parts[0] || '', s = parts[1] || '';
+  return ((g.slice(0, 2) + s.slice(0, 2)).toUpperCase()) || '??';
+}
+// Resolve a species to its tile code + diet category (taxa → genus → derived).
+function speciesInfo(name) {
+  const t = sitesState.taxaByName[name];
+  const genus = (name || '').split(' ')[0];
+  const g = sitesState.generaByName[genus];
+  return {
+    code: (t && t.code) || code22(name || ''),
+    category: (t && t.category) || (g && g.category) || 'uncertain'
+  };
+}
+// A periodic-table style tile: diet-colored border, code centered, count upper-right.
+function dinoTile(name, count) {
+  const { code, category } = speciesInfo(name);
+  return `<div class="dino-tile cat-${category}" title="${name} · ${count}">
+    <span class="dino-count">${count}</span>
+    <span class="dino-sym">${code}</span>
+  </div>`;
 }
 
 async function sitesInit() {
@@ -1065,20 +1097,27 @@ async function sitesLoadFormations() {
   sel.value = (saved && names.includes(saved)) ? saved : names[0];
 }
 
+// Genera map (name -> {symbol, category}) for tile fallback; loaded once.
+async function sitesLoadGenera() {
+  if (Object.keys(sitesState.generaByName).length) return;
+  const { data } = await db.from('genera').select('name,symbol,category');
+  (data || []).forEach(g => { sitesState.generaByName[g.name] = { symbol: g.symbol, category: g.category }; });
+}
+
 async function sitesLoadTaxa(formationName) {
-  sitesState.taxaBySlug = {}; sitesState.taxaByName = {};
+  sitesState.taxaByName = {};
+  await sitesLoadGenera();
   const f = sitesState.formations.find(x => x.name === formationName);
   const epochs = new Set();
   const taxonSel = document.getElementById('sites-filter-taxon');
   const epochSel = document.getElementById('sites-filter-epoch');
   let taxa = [];
   if (f && f.id) {
-    const { data } = await db.from('taxa').select('scientific_name,icon_slug,epoch,is_active').eq('formation_id', f.id).eq('is_active', true).order('display_order');
+    const { data } = await db.from('taxa').select('scientific_name,code,category,epoch,is_active').eq('formation_id', f.id).eq('is_active', true).order('display_order');
     taxa = data || [];
   }
   taxa.forEach(t => {
-    if (t.icon_slug) sitesState.taxaBySlug[t.icon_slug] = t;
-    sitesState.taxaByName[t.scientific_name] = t.icon_slug || null;
+    sitesState.taxaByName[t.scientific_name] = { code: t.code, category: t.category };
     if (t.epoch) epochs.add(t.epoch);
   });
   const realTaxa = taxa.filter(t => t.scientific_name !== 'Indeterminate' && t.scientific_name !== 'Other');
@@ -1170,17 +1209,15 @@ function buildFlagIcon(site) {
   const species = Object.entries(counts).sort((a, b) => b[1].count - a[1].count);
   let flags = '';
   if (species.length === 0) {
-    flags = `<div class="site-flag"><img src="${DINO_FALLBACK}" alt="" onerror="this.style.visibility='hidden'"></div>`;
+    flags = `<div class="dino-tile cat-uncertain" title="No specimens"><span class="dino-sym">··</span></div>`;
   } else {
     const shown = species.slice(0, MAX_FLAGS);
-    flags = shown.map(([name, c]) =>
-      `<div class="site-flag"><img src="${iconForSpecies(name)}" alt="${name}" onerror="this.onerror=null;this.src='${DINO_FALLBACK}'"><span class="site-flag-count">${c.count}</span></div>`
-    ).join('');
+    flags = shown.map(([name, c]) => dinoTile(name, c.count)).join('');
     if (species.length > MAX_FLAGS) flags += `<span class="site-flag-more">+${species.length - MAX_FLAGS}</span>`;
   }
   const html = `<div class="site-flags">${flags}</div><div class="site-pin-dot"></div>`;
   const shownN = species.length === 0 ? 1 : Math.min(species.length, MAX_FLAGS) + (species.length > MAX_FLAGS ? 1 : 0);
-  const w = Math.max(34, shownN * 34), h = 48;
+  const w = Math.max(38, shownN * 40), h = 52;
   return L.divIcon({ className: 'site-flag-icon', html, iconSize: [w, h], iconAnchor: [w / 2, h] });
 }
 
@@ -1188,8 +1225,10 @@ function buildFlagTooltip(site) {
   const counts = sitesState.countsBySite[site.id] || {};
   const species = Object.entries(counts).sort((a, b) => b[1].count - a[1].count);
   const rows = species.length
-    ? species.map(([name, c]) =>
-        `<div class="flagtip-row"><img src="${iconForSpecies(name)}" onerror="this.style.display='none'"><span>${name}</span><span class="flagtip-count">· ${c.count}</span></div>`).join('')
+    ? species.map(([name, c]) => {
+        const { code, category } = speciesInfo(name);
+        return `<div class="flagtip-row"><span class="flagtip-code cat-${category}">${code}</span><span>${name}</span><span class="flagtip-count">· ${c.count}</span></div>`;
+      }).join('')
     : '<div class="flagtip-count">No specimens logged yet</div>';
   return `<div class="flagtip"><div class="flagtip-title">${site.site_code}${site.site_name ? ' — '+site.site_name : ''}</div>${rows}</div>`;
 }
@@ -1261,8 +1300,10 @@ function renderSiteDetail(site) {
   let speciesSummary = '';
   if (!isNew) {
     const counts = sitesState.countsBySite[s.id] || {};
-    const chips = Object.entries(counts).sort((a,b)=>b[1].count-a[1].count).map(([name, c]) =>
-      `<span class="site-species-chip"><img src="${iconForSpecies(name)}" onerror="this.style.display='none'">${name} · ${c.count}</span>`).join('');
+    const chips = Object.entries(counts).sort((a,b)=>b[1].count-a[1].count).map(([name, c]) => {
+      const { code, category } = speciesInfo(name);
+      return `<span class="site-species-chip"><span class="flagtip-code cat-${category}">${code}</span>${name} · ${c.count}</span>`;
+    }).join('');
     speciesSummary = `<div class="site-species-summary">${chips || '<span class="sites-detail-hint">No specimens logged yet.</span>'}</div>`;
   }
 
@@ -1370,6 +1411,19 @@ const REF_CONFIG = {
     ],
     listCols: ['name', 'display_order']
   },
+  genera: {
+    label: 'Genus', table: 'genera',
+    order: [{ column: 'display_order' }, { column: 'name' }],
+    columns: [
+      { key: 'symbol',        label: 'Symbol',     type: 'text', required: true, hint: 'periodic-table code, e.g. TYRA' },
+      { key: 'name',          label: 'Genus name', type: 'text', required: true },
+      { key: 'category',      label: 'Diet',       type: 'select', options: ['carnivore','herbivore','omnivore','uncertain'] },
+      { key: 'pbdb_taxon_no', label: 'PBDB #',     type: 'int' },
+      { key: 'gbif_key',      label: 'GBIF key',   type: 'int' },
+      { key: 'display_order', label: 'Order',      type: 'int', default: 100 }
+    ],
+    listCols: ['symbol', 'name', 'category', 'pbdb_taxon_no']
+  },
   taxa: {
     label: 'Taxon', table: 'taxa',
     order: [{ column: 'formation_id' }, { column: 'display_order' }],
@@ -1378,10 +1432,11 @@ const REF_CONFIG = {
       { key: 'epoch',           label: 'Epoch',           type: 'text' },
       { key: 'scientific_name', label: 'Scientific name', type: 'text', required: true },
       { key: 'common_name',     label: 'Common name',     type: 'text' },
-      { key: 'icon_slug',       label: 'Icon slug',       type: 'text', hint: 'assets/dino/{slug}.png — auto-suggested from scientific name' },
+      { key: 'code',            label: 'Code',            type: 'text', hint: '2+2 species code, e.g. TYRE — auto-suggested' },
+      { key: 'category',        label: 'Diet',            type: 'select', options: ['carnivore','herbivore','omnivore','uncertain'] },
       { key: 'display_order',   label: 'Order',           type: 'int', default: 100 }
     ],
-    listCols: ['icon', 'scientific_name', 'formation_name', 'epoch', 'common_name']
+    listCols: ['code', 'scientific_name', 'formation_name', 'epoch', 'category']
   },
   elements: {
     label: 'Element', table: 'elements',
@@ -1462,6 +1517,8 @@ function renderRefTable() {
           : '<td></td>';
       }
       if (c === 'formation_name') return `<td>${formationName(r.formation_id)}</td>`;
+      if (c === 'symbol' || c === 'code') return `<td><span class="flagtip-code cat-${r.category || 'uncertain'}">${r[c] || '—'}</span></td>`;
+      if (c === 'category') return `<td>${r.category ? `<span class="ref-diet cat-${r.category}"></span>${r.category}` : '—'}</td>`;
       const v = r[c];
       return `<td>${v === null || v === undefined || v === '' ? '—' : String(v)}</td>`;
     }).join('');
@@ -1497,13 +1554,14 @@ function refOpenEditor(id) {
         `<option value="${f.id}" ${f.id === val ? 'selected' : ''}>${f.name}</option>`).join('');
       field = `<select class="form-select" id="ref-f-${col.key}"><option value="">— select —</option>${opts}</select>`;
     } else if (col.type === 'select') {
+      const blank = col.required ? '' : `<option value="" ${!val ? 'selected' : ''}>—</option>`;
       const opts = col.options.map(o =>
         `<option value="${o}" ${o === val ? 'selected' : ''}>${o}</option>`).join('');
-      field = `<select class="form-select" id="ref-f-${col.key}">${opts}</select>`;
+      field = `<select class="form-select" id="ref-f-${col.key}">${blank}${opts}</select>`;
     } else {
       const t = col.type === 'int' ? 'number' : 'text';
       const oninput = (refState.type === 'taxa' && col.key === 'scientific_name')
-        ? ` oninput="refSuggestSlug(this.value)"` : '';
+        ? ` oninput="refSuggestCode(this.value)"` : '';
       field = `<input class="form-input" id="ref-f-${col.key}" type="${t}" value="${String(val).replace(/"/g,'&quot;')}"${oninput}>`;
     }
     return `<div class="form-group">
@@ -1517,13 +1575,14 @@ function refOpenEditor(id) {
   openModal('ref-modal');
 }
 
-// Auto-fill the icon slug from the scientific name while typing (only if empty/unedited).
-function refSuggestSlug(sciName) {
-  const slugEl = document.getElementById('ref-f-icon_slug');
-  if (!slugEl) return;
-  if (!slugEl.value || slugEl.dataset.auto === '1') {
-    slugEl.value = slugify(sciName);
-    slugEl.dataset.auto = '1';
+// Auto-fill the 2+2 species code from the scientific name while typing (if empty/unedited).
+function refSuggestCode(sciName) {
+  const el = document.getElementById('ref-f-code');
+  if (!el) return;
+  if (!el.value || el.dataset.auto === '1') {
+    const [g, s] = (sciName || '').trim().split(/\s+/);
+    el.value = ((g || '').slice(0, 2) + (s || '').slice(0, 2)).toUpperCase();
+    el.dataset.auto = '1';
   }
 }
 
