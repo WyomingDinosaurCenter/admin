@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  WDC dinosaur flag icon TEMPLATE
+  ────────────────────────────────────────────────────────────
+  512×512 badge. Drop a species silhouette into <g id="silhouette">
+  and set the ring stroke to the category colour.
+
+  Category ring colours:
+    Herbivore    #2E7D32   (green)
+    Predator     #C0392B   (red)
+    Aquatic      #1565C0   (blue)
+    Amphibian    #F9A825   (amber)
+    Unknown/Other#8A7060   (gray)
+
+  Silhouette guidance: side profile, facing right, solid #1A1714
+  fill, no internal detail, scaled to fill ~80% of the coin
+  (roughly the 96–416 box). Export as {icon_slug}.png, transparent.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Cream coin -->
+  <circle cx="256" cy="256" r="232" fill="#FAF7F2"/>
+  <!-- Category ring — change stroke to the category colour -->
+  <circle cx="256" cy="256" r="232" fill="none" stroke="#2E7D32" stroke-width="24"/>
+
+  <!-- ▼▼▼ Replace the contents of this group with the species silhouette ▼▼▼ -->
+  <g id="silhouette" fill="#1A1714">
+    <!-- Example placeholder shape (delete): a centred dot -->
+    <!-- <path d="..."/> -->
+  </g>
+  <!-- ▲▲▲ -->
+</svg>

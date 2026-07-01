@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WDC Admin</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Leaflet (map) + MiniMap plugin -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.css">
+<script src="https://cdn.jsdelivr.net/npm/leaflet-minimap@3.6.1/dist/Control.MiniMap.min.js"></script>
 <style>
   :root {
     --primary:   #4A3728;
@@ -237,6 +242,101 @@
   .subtab-view        { display: none; }
   .subtab-view.active { display: block; }
 
+  /* ── Reference-data manager ── */
+  .ref-page { padding: 16px 24px; }
+  .ref-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .ref-type-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ref-type {
+    padding: 6px 12px; font-size: .8rem; font-weight: 600;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--text-dim); border-radius: 8px; cursor: pointer;
+  }
+  .ref-type:hover  { color: var(--text); }
+  .ref-type.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .ref-table {
+    width: 100%; border-collapse: collapse; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; font-size: .85rem;
+  }
+  .ref-table th {
+    text-align: left; padding: 9px 12px; background: var(--bg);
+    border-bottom: 1px solid var(--border); font-size: .7rem;
+    text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim);
+  }
+  .ref-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  .ref-table tr:last-child td { border-bottom: none; }
+  .ref-table tr.inactive td:not(.ref-actions-cell) { opacity: .4; }
+  .ref-actions-cell { text-align: right; white-space: nowrap; }
+  .ref-badge { font-size: .68rem; padding: 1px 8px; border-radius: 10px; background: var(--border); color: var(--text-dim); }
+  .ref-badge.on { background: #dff0df; color: var(--success); }
+  .ref-empty { padding: 40px; text-align: center; color: var(--text-dim); font-size: .9rem; }
+  .ref-icon-preview { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; border-radius: 4px; background: var(--bg); }
+  .ref-link-btn { background: none; border: none; color: var(--gold); font-weight: 600; font-size: .8rem; cursor: pointer; padding: 3px 6px; }
+  .ref-link-btn.danger { color: var(--danger); }
+  .ref-link-btn:hover { text-decoration: underline; }
+
+  /* ── Sites page ── */
+  #tab-sites.tab-view.active { display: flex; flex-direction: column; height: calc(100vh - 52px); }
+  .sites-filterbar {
+    display: flex; align-items: flex-end; gap: 14px; flex-wrap: wrap;
+    padding: 10px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+  .sites-fg { display: flex; flex-direction: column; gap: 3px; }
+  .sites-fg > label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); }
+  .sites-filterbar select {
+    padding: 6px 9px; border: 1px solid var(--border); border-radius: 8px;
+    font-size: .82rem; background: var(--surface); color: var(--text); height: 32px; outline: none;
+  }
+  .sites-filterbar select:focus { border-color: var(--gold); }
+  .sites-toggle { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--text); height: 32px; cursor: pointer; }
+  .sites-toggle input { width: 15px; height: 15px; accent-color: var(--gold); }
+
+  .sites-body { flex: 1; display: grid; grid-template-columns: 250px 1fr 330px; min-height: 0; }
+  .sites-col { min-height: 0; overflow: auto; background: var(--surface); }
+  .sites-list-col { border-right: 1px solid var(--border); }
+  .sites-detail-col { border-left: 1px solid var(--border); padding: 14px 16px; }
+  .sites-map-col { min-height: 0; position: relative; background: #dfe4e8; }
+  #sites-map { position: absolute; inset: 0; }
+
+  .sites-list-head { padding: 10px 12px 8px; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 1; }
+  .site-item { padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .site-item:hover { background: var(--bg); }
+  .site-item.selected { background: #f4ece0; border-left: 3px solid var(--gold); padding-left: 9px; }
+  .site-item-code { font-size: .85rem; font-weight: 700; }
+  .site-item-name { font-size: .75rem; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .site-item-meta { font-size: .7rem; color: var(--text-dim); margin-top: 3px; display: flex; gap: 8px; }
+  .site-item.archived .site-item-code::after { content: ' · archived'; font-weight: 400; color: var(--warning); font-size: .7rem; }
+
+  /* Map flags */
+  .site-flag-icon { background: transparent; border: none; }
+  .site-flags { display: flex; align-items: flex-end; justify-content: center; gap: 2px; transform: translateY(-6px); filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+  .site-flag { position: relative; width: 30px; height: 30px; }
+  .site-flag img { width: 30px; height: 30px; object-fit: contain; }
+  .site-flag-count {
+    position: absolute; top: -5px; right: -5px; min-width: 15px; height: 15px; padding: 0 3px;
+    background: var(--primary); color: #fff; border: 1.5px solid #fff; border-radius: 8px;
+    font-size: .6rem; font-weight: 700; line-height: 12px; text-align: center;
+  }
+  .site-flag-more { align-self: center; font-size: .7rem; font-weight: 700; color: #fff; background: var(--primary); border-radius: 8px; padding: 1px 5px; }
+  .site-pin-dot { width: 8px; height: 8px; background: var(--gold); border: 2px solid #fff; border-radius: 50%; margin: 0 auto; box-shadow: 0 1px 2px rgba(0,0,0,.5); }
+
+  .flagtip { font-size: .8rem; }
+  .flagtip-title { font-weight: 700; margin-bottom: 4px; }
+  .flagtip-row { display: flex; align-items: center; gap: 6px; padding: 1px 0; }
+  .flagtip-row img { width: 18px; height: 18px; object-fit: contain; }
+  .flagtip-count { color: var(--text-dim); }
+
+  .sites-detail-title { font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 2px; }
+  .sites-detail-hint { font-size: .75rem; color: var(--text-dim); margin-bottom: 12px; }
+  .sites-detail-col .form-group { margin-bottom: 10px; }
+  .sites-detail-col .form-label { font-size: .72rem; }
+  .site-species-summary { margin: 6px 0 14px; }
+  .site-species-chip { display: inline-flex; align-items: center; gap: 4px; font-size: .72rem; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 2px 8px; margin: 0 4px 4px 0; }
+  .site-species-chip img { width: 15px; height: 15px; object-fit: contain; }
+  .gps-pick-note { font-size: .72rem; color: var(--warning); margin-bottom: 8px; display: none; }
+  .gps-pick-note.on { display: block; }
+  .leaflet-container.picking { cursor: crosshair !important; }
+
   /* ── Info tab ── */
   .info-page { max-width: 640px; margin: 40px auto; padding: 0 24px; }
   .info-page h2 { font-size: 1.3rem; font-weight: 700; color: var(--primary); margin-bottom: 6px; }
@@ -342,9 +442,45 @@
 
   <!-- SITES TAB -->
   <div class="tab-view" id="tab-sites">
-    <div class="placeholder">
-      Sites — coming soon
-      <span class="ph-sub">Manage dig sites / localities: view, edit, and archive collection sites.</span>
+    <div class="sites-filterbar">
+      <div class="sites-fg">
+        <label>Formation</label>
+        <select id="sites-formation" onchange="sitesOnFormationChange()"></select>
+      </div>
+      <div class="sites-fg">
+        <label>Species</label>
+        <select id="sites-filter-taxon" onchange="sitesApplyFilters()"><option value="">All species</option></select>
+      </div>
+      <div class="sites-fg">
+        <label>Epoch</label>
+        <select id="sites-filter-epoch" onchange="sitesApplyFilters()"><option value="">All epochs</option></select>
+      </div>
+      <label class="sites-toggle"><input type="checkbox" id="sites-filter-hasspec" onchange="sitesApplyFilters()"> Has specimens</label>
+      <label class="sites-toggle"><input type="checkbox" id="sites-filter-archived" onchange="sitesReload()"> Include archived</label>
+      <div class="sites-fg" style="margin-left:auto">
+        <label>Base map</label>
+        <select id="sites-basemap" onchange="sitesSetBase(this.value)">
+          <option value="satellite">Satellite</option>
+          <option value="topo">Topographic</option>
+          <option value="street">Street</option>
+        </select>
+      </div>
+      <label class="sites-toggle"><input type="checkbox" id="sites-geology" onchange="sitesToggleGeology(this.checked)"> Geology overlay</label>
+    </div>
+
+    <div class="sites-body">
+      <div class="sites-col sites-list-col">
+        <div class="sites-list-head" id="sites-list-head">Sites</div>
+        <div id="sites-list"></div>
+      </div>
+      <div class="sites-col sites-map-col">
+        <div id="sites-map"></div>
+      </div>
+      <div class="sites-col sites-detail-col">
+        <button class="btn btn-gold" style="width:100%;margin-bottom:12px" onclick="sitesNew()">+ New Site</button>
+        <div class="gps-pick-note" id="sites-gps-note">Click the map to set GPS coordinates.</div>
+        <div id="sites-detail"></div>
+      </div>
     </div>
   </div>
 
@@ -378,8 +514,34 @@
     </div>
   </div>
 
-  <!-- INFO TAB -->
+  <!-- INFO TAB (Links + Reference Data) -->
   <div class="tab-view" id="tab-info">
+    <div class="subtab-bar">
+      <div class="subtab active" data-subtab="info-links" onclick="switchSubtab('info-links')">Links</div>
+      <div class="subtab"        data-subtab="info-ref"   onclick="switchSubtab('info-ref')">Reference Data</div>
+    </div>
+
+    <!-- Reference Data manager -->
+    <div class="subtab-view" id="subtab-info-ref">
+      <div class="ref-page">
+        <div class="ref-toolbar">
+          <div class="ref-type-tabs">
+            <button class="ref-type active" data-ref="formations"   onclick="refSelect('formations')">Formations</button>
+            <button class="ref-type"        data-ref="taxa"          onclick="refSelect('taxa')">Taxa</button>
+            <button class="ref-type"        data-ref="elements"      onclick="refSelect('elements')">Elements</button>
+            <button class="ref-type"        data-ref="vocabularies"  onclick="refSelect('vocabularies')">Vocabularies</button>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="refLoad()">↻ Refresh</button>
+            <button class="btn btn-gold btn-sm"  onclick="refOpenEditor(null)">+ Add</button>
+          </div>
+        </div>
+        <div id="ref-table-wrap"><div class="ref-empty">Loading…</div></div>
+      </div>
+    </div>
+
+    <!-- Links -->
+    <div class="subtab-view active" id="subtab-info-links">
     <div class="info-page">
       <h2>WDC Digital Collections</h2>
       <p class="info-subtitle">Key links for the development and administration of this system.</p>
@@ -428,8 +590,24 @@
         </a>
       </div>
     </div>
+    </div><!-- end subtab-view info-links -->
   </div>
 
+</div>
+
+<!-- ── REFERENCE EDITOR MODAL ── -->
+<div class="modal-bg" id="ref-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="ref-modal-title">Add</span>
+      <button class="modal-close" onclick="closeModal('ref-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="ref-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost"   onclick="closeModal('ref-modal')">Cancel</button>
+      <button class="btn btn-primary" id="ref-save-btn" onclick="refSave()">Save</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── ROLE MODAL ── -->
@@ -534,14 +712,18 @@ function switchTab(name) {
   document.querySelectorAll('.header-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.add('active');
   document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  if (name === 'sites') sitesInit();
 }
 
-// Sub-tabs within the Specimens page (Intake / Catalog live here)
+// Sub-tabs within a top-level tab (Specimens: Intake/Catalog; Info: Links/Reference Data).
+// Scoped to the containing tab so the two groups don't clobber each other.
 function switchSubtab(name) {
-  document.querySelectorAll('.subtab-view').forEach(v => v.classList.remove('active'));
-  document.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
-  document.getElementById(`subtab-${name}`).classList.add('active');
-  document.querySelector(`[data-subtab="${name}"]`).classList.add('active');
+  const tab = document.querySelector(`[data-subtab="${name}"]`).closest('.tab-view');
+  tab.querySelectorAll('.subtab-view').forEach(v => v.classList.remove('active'));
+  tab.querySelectorAll('.subtab').forEach(t => t.classList.remove('active'));
+  tab.querySelector(`#subtab-${name}`).classList.add('active');
+  tab.querySelector(`[data-subtab="${name}"]`).classList.add('active');
+  if (name === 'info-ref' && !refState.loaded) refSelect(refState.type);
 }
 
 // ── AUTH ──────────────────────────────────────────────────────
@@ -559,6 +741,7 @@ async function doLogin() {
   if (error) { errEl.textContent = error.message; errEl.style.display = 'block'; return; }
 
   currentSession = data.session; // ensure session is available for callFunction
+  currentUser    = data.user;    // used for created_by + "you" tag
 
   // Check admin role
   const { data: profile } = await db
@@ -807,6 +990,592 @@ function copyInviteLink() {
   navigator.clipboard.writeText(input.value)
     .then(() => showToast('Link copied'))
     .catch(() => { input.select(); document.execCommand('copy'); showToast('Link copied'); });
+}
+
+// ══════════════════════════════════════════════════════════════
+//  SITES PAGE  (map · flags · filters · details / create-edit)
+// ══════════════════════════════════════════════════════════════
+const FORMATION_FALLBACK = ['Morrison','Lance','Hell Creek','Cloverly','Frontier','Mowry','Other'];
+const DINO_ICON = slug => `assets/dino/${slug}.png`;
+const DINO_FALLBACK = 'assets/dino/_fallback.png';
+const MAX_FLAGS = 4; // flags shown before "+N" on a marker
+
+const sitesState = {
+  inited: false, map: null, minimap: null, markerLayer: null,
+  baseLayers: {}, geologyLayer: null, currentBase: 'satellite',
+  formations: [],          // [{id,name}]
+  taxaBySlug: {},          // icon_slug -> {scientific_name, icon_slug}
+  taxaByName: {},          // scientific_name -> icon_slug
+  sites: [],               // locations rows for the formation
+  countsBySite: {},        // siteId -> { species: {count, catalogs:[]} }
+  selectedId: null,
+  picking: false
+};
+
+function sitesSlug(name) { return (name||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
+function iconForSpecies(name) {
+  if (!name) return DINO_FALLBACK;
+  const slug = sitesState.taxaByName[name] || sitesSlug(name);
+  return slug ? DINO_ICON(slug) : DINO_FALLBACK;
+}
+
+async function sitesInit() {
+  if (sitesState.inited) { setTimeout(() => sitesState.map && sitesState.map.invalidateSize(), 60); return; }
+  sitesState.inited = true;
+
+  // Base layers (free, no key). Topo = OpenTopoMap; geology overlay = Macrostrat.
+  const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    { maxZoom: 19, attribution: 'Imagery © Esri' });
+  const topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    { maxZoom: 17, attribution: '© OpenTopoMap (CC-BY-SA)' });
+  const street = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    { maxZoom: 19, attribution: '© OpenStreetMap' });
+  sitesState.baseLayers = { satellite: esri, topo, street };
+  sitesState.geologyLayer = L.tileLayer('https://tiles.macrostrat.org/carto/{z}/{x}/{y}.png',
+    { maxZoom: 15, opacity: 0.55, attribution: 'Geology © Macrostrat' });
+
+  const map = L.map('sites-map', { center: [43.64, -108.2], zoom: 8, layers: [esri], zoomControl: true });
+  sitesState.map = map;
+  sitesState.markerLayer = L.layerGroup().addTo(map);
+
+  // MiniMap (guarded — optional plugin)
+  try {
+    if (L.Control && L.Control.MiniMap) {
+      const miniTiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 13 });
+      sitesState.minimap = new L.Control.MiniMap(miniTiles, { toggleDisplay: true, position: 'topright', width: 150, height: 150 }).addTo(map);
+    }
+  } catch (e) { /* minimap optional */ }
+
+  setTimeout(() => map.invalidateSize(), 60);
+  sitesEnablePickOnce(); // clicking the map fills lat/lng whenever a detail form is open
+
+  await sitesLoadFormations();
+  await sitesReload();
+}
+
+async function sitesLoadFormations() {
+  let names = [];
+  const { data } = await db.from('formations').select('id,name,display_order').eq('is_active', true).order('display_order');
+  if (data && data.length) { sitesState.formations = data; names = data.map(f => f.name); }
+  else { sitesState.formations = FORMATION_FALLBACK.map(n => ({ id:null, name:n })); names = FORMATION_FALLBACK; }
+
+  const sel = document.getElementById('sites-formation');
+  sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join('');
+  const saved = localStorage.getItem('wdc_admin_sites_formation');
+  sel.value = (saved && names.includes(saved)) ? saved : names[0];
+}
+
+async function sitesLoadTaxa(formationName) {
+  sitesState.taxaBySlug = {}; sitesState.taxaByName = {};
+  const f = sitesState.formations.find(x => x.name === formationName);
+  const epochs = new Set();
+  const taxonSel = document.getElementById('sites-filter-taxon');
+  const epochSel = document.getElementById('sites-filter-epoch');
+  let taxa = [];
+  if (f && f.id) {
+    const { data } = await db.from('taxa').select('scientific_name,icon_slug,epoch,is_active').eq('formation_id', f.id).eq('is_active', true).order('display_order');
+    taxa = data || [];
+  }
+  taxa.forEach(t => {
+    if (t.icon_slug) sitesState.taxaBySlug[t.icon_slug] = t;
+    sitesState.taxaByName[t.scientific_name] = t.icon_slug || null;
+    if (t.epoch) epochs.add(t.epoch);
+  });
+  const realTaxa = taxa.filter(t => t.scientific_name !== 'Indeterminate' && t.scientific_name !== 'Other');
+  taxonSel.innerHTML = '<option value="">All species</option>' +
+    realTaxa.map(t => `<option value="${t.scientific_name}">${t.scientific_name}</option>`).join('');
+  epochSel.innerHTML = '<option value="">All epochs</option>' +
+    [...epochs].map(e => `<option value="${e}">${e}</option>`).join('');
+}
+
+function sitesCurrentFormation() { return document.getElementById('sites-formation').value; }
+
+async function sitesOnFormationChange() {
+  localStorage.setItem('wdc_admin_sites_formation', sitesCurrentFormation());
+  await sitesReload();
+}
+
+async function sitesReload() {
+  const formation = sitesCurrentFormation();
+  await sitesLoadTaxa(formation);
+
+  const includeArchived = document.getElementById('sites-filter-archived').checked;
+  let q = db.from('locations').select('*').eq('formation', formation).order('site_code');
+  if (!includeArchived) q = q.eq('is_archived', false);
+  const { data: sites, error } = await q;
+  if (error) { showToast(error.message, true); return; }
+  sitesState.sites = sites || [];
+
+  // Specimen counts per site per species
+  sitesState.countsBySite = {};
+  const ids = sitesState.sites.map(s => s.id);
+  if (ids.length) {
+    const { data: occ } = await db.from('occurrences')
+      .select('location_id, scientific_name, "catalogNumber"').in('location_id', ids);
+    (occ || []).forEach(o => {
+      const sp = o.scientific_name || 'Indeterminate';
+      const b = (sitesState.countsBySite[o.location_id] ||= {});
+      const c = (b[sp] ||= { count: 0, catalogs: [] });
+      c.count++; if (o.catalogNumber) c.catalogs.push(o.catalogNumber);
+    });
+  }
+
+  sitesApplyFilters();
+}
+
+function sitesFilteredSites() {
+  const taxon = document.getElementById('sites-filter-taxon').value;
+  const epoch = document.getElementById('sites-filter-epoch').value;
+  const hasSpec = document.getElementById('sites-filter-hasspec').checked;
+  return sitesState.sites.filter(s => {
+    const counts = sitesState.countsBySite[s.id] || {};
+    const speciesHere = Object.keys(counts);
+    if (hasSpec && speciesHere.length === 0) return false;
+    if (taxon && !speciesHere.includes(taxon)) return false;
+    if (epoch && (s.epoch || '') !== epoch) return false;
+    return true;
+  });
+}
+
+function sitesApplyFilters() {
+  const list = sitesFilteredSites();
+  renderSitesList(list);
+  renderSiteMarkers(list);
+}
+
+function renderSitesList(list) {
+  const head = document.getElementById('sites-list-head');
+  head.textContent = `Sites — ${sitesCurrentFormation()} (${list.length})`;
+  const el = document.getElementById('sites-list');
+  if (!list.length) { el.innerHTML = '<div class="ref-empty">No sites match.</div>'; return; }
+  el.innerHTML = list.map(s => {
+    const counts = sitesState.countsBySite[s.id] || {};
+    const specCount = Object.values(counts).reduce((a, c) => a + c.count, 0);
+    const spCount = Object.keys(counts).length;
+    const hasGps = s.decimal_latitude != null && s.decimal_longitude != null;
+    return `<div class="site-item${s.id === sitesState.selectedId ? ' selected' : ''}${s.is_archived ? ' archived' : ''}" onclick="sitesSelect('${s.id}')">
+      <div class="site-item-code">${s.site_code || '—'}</div>
+      <div class="site-item-name">${s.site_name || ''}</div>
+      <div class="site-item-meta">
+        <span>${specCount} specimen${specCount!==1?'s':''}</span>
+        <span>${spCount} species</span>
+        ${hasGps ? '' : '<span title="No GPS">⚠ no GPS</span>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildFlagIcon(site) {
+  const counts = sitesState.countsBySite[site.id] || {};
+  const species = Object.entries(counts).sort((a, b) => b[1].count - a[1].count);
+  let flags = '';
+  if (species.length === 0) {
+    flags = `<div class="site-flag"><img src="${DINO_FALLBACK}" alt="" onerror="this.style.visibility='hidden'"></div>`;
+  } else {
+    const shown = species.slice(0, MAX_FLAGS);
+    flags = shown.map(([name, c]) =>
+      `<div class="site-flag"><img src="${iconForSpecies(name)}" alt="${name}" onerror="this.onerror=null;this.src='${DINO_FALLBACK}'"><span class="site-flag-count">${c.count}</span></div>`
+    ).join('');
+    if (species.length > MAX_FLAGS) flags += `<span class="site-flag-more">+${species.length - MAX_FLAGS}</span>`;
+  }
+  const html = `<div class="site-flags">${flags}</div><div class="site-pin-dot"></div>`;
+  const shownN = species.length === 0 ? 1 : Math.min(species.length, MAX_FLAGS) + (species.length > MAX_FLAGS ? 1 : 0);
+  const w = Math.max(34, shownN * 34), h = 48;
+  return L.divIcon({ className: 'site-flag-icon', html, iconSize: [w, h], iconAnchor: [w / 2, h] });
+}
+
+function buildFlagTooltip(site) {
+  const counts = sitesState.countsBySite[site.id] || {};
+  const species = Object.entries(counts).sort((a, b) => b[1].count - a[1].count);
+  const rows = species.length
+    ? species.map(([name, c]) =>
+        `<div class="flagtip-row"><img src="${iconForSpecies(name)}" onerror="this.style.display='none'"><span>${name}</span><span class="flagtip-count">· ${c.count}</span></div>`).join('')
+    : '<div class="flagtip-count">No specimens logged yet</div>';
+  return `<div class="flagtip"><div class="flagtip-title">${site.site_code}${site.site_name ? ' — '+site.site_name : ''}</div>${rows}</div>`;
+}
+
+function renderSiteMarkers(list) {
+  const map = sitesState.map, layer = sitesState.markerLayer;
+  if (!map) return;
+  layer.clearLayers();
+  const pts = [];
+  list.forEach(s => {
+    if (s.decimal_latitude == null || s.decimal_longitude == null) return;
+    const latlng = [Number(s.decimal_latitude), Number(s.decimal_longitude)];
+    pts.push(latlng);
+    const m = L.marker(latlng, { icon: buildFlagIcon(s) });
+    m.bindTooltip(buildFlagTooltip(s), { direction: 'top', offset: [0, -18], sticky: false, opacity: 0.97 });
+    m.on('click', () => sitesSelect(s.id));
+    layer.addLayer(m);
+  });
+  // Fit so sites fill ~75% of the map (12.5% padding each side)
+  if (pts.length) {
+    const b = L.latLngBounds(pts);
+    const size = map.getSize();
+    const padX = Math.max(30, size.x * 0.125), padY = Math.max(30, size.y * 0.125);
+    if (pts.length === 1) map.setView(pts[0], 14);
+    else map.fitBounds(b, { paddingTopLeft: [padX, padY], paddingBottomRight: [padX, padY] });
+  }
+}
+
+function sitesSetBase(kind) {
+  const map = sitesState.map; if (!map) return;
+  Object.values(sitesState.baseLayers).forEach(l => map.hasLayer(l) && map.removeLayer(l));
+  const layer = sitesState.baseLayers[kind] || sitesState.baseLayers.satellite;
+  layer.addTo(map); layer.bringToBack();
+  sitesState.currentBase = kind;
+}
+
+function sitesToggleGeology(on) {
+  const map = sitesState.map; if (!map) return;
+  if (on) sitesState.geologyLayer.addTo(map);
+  else map.removeLayer(sitesState.geologyLayer);
+}
+
+function sitesSelect(id) {
+  sitesState.selectedId = id;
+  const site = sitesState.sites.find(s => s.id === id);
+  renderSitesList(sitesFilteredSites());
+  renderSiteDetail(site);
+  if (site && site.decimal_latitude != null && site.decimal_longitude != null && sitesState.map) {
+    sitesState.map.panTo([Number(site.decimal_latitude), Number(site.decimal_longitude)]);
+  }
+}
+
+function sitesNew() {
+  sitesState.selectedId = null;
+  renderSitesList(sitesFilteredSites());
+  renderSiteDetail(null);
+}
+
+function sitesFormationOptions(selected) {
+  return sitesState.formations.map(f =>
+    `<option value="${f.name}" ${f.name === selected ? 'selected' : ''}>${f.name}</option>`).join('');
+}
+
+function renderSiteDetail(site) {
+  const isNew = !site;
+  const s = site || { formation: sitesCurrentFormation() };
+  const el = document.getElementById('sites-detail');
+
+  let speciesSummary = '';
+  if (!isNew) {
+    const counts = sitesState.countsBySite[s.id] || {};
+    const chips = Object.entries(counts).sort((a,b)=>b[1].count-a[1].count).map(([name, c]) =>
+      `<span class="site-species-chip"><img src="${iconForSpecies(name)}" onerror="this.style.display='none'">${name} · ${c.count}</span>`).join('');
+    speciesSummary = `<div class="site-species-summary">${chips || '<span class="sites-detail-hint">No specimens logged yet.</span>'}</div>`;
+  }
+
+  el.innerHTML = `
+    <div class="sites-detail-title">${isNew ? 'New Site' : (s.site_code || 'Site')}</div>
+    <div class="sites-detail-hint">${isNew ? 'Fill in details and click the map to set GPS.' : (s.site_name || '')}</div>
+    ${speciesSummary}
+    <div class="form-group"><label class="form-label">Site Code *</label><input class="form-input" id="sd-code" value="${(s.site_code||'').replace(/"/g,'&quot;')}"></div>
+    <div class="form-group"><label class="form-label">Site Name</label><input class="form-input" id="sd-name" value="${(s.site_name||'').replace(/"/g,'&quot;')}"></div>
+    <div class="form-group"><label class="form-label">Verbatim Locality</label><input class="form-input" id="sd-locality" value="${(s.verbatim_locality||'').replace(/"/g,'&quot;')}"></div>
+    <div class="form-group"><label class="form-label">Formation</label><select class="form-select" id="sd-formation">${sitesFormationOptions(s.formation)}</select></div>
+    <div class="form-group"><label class="form-label">Epoch</label><input class="form-input" id="sd-epoch" value="${(s.epoch||'').replace(/"/g,'&quot;')}"></div>
+    <div style="display:flex;gap:8px">
+      <div class="form-group" style="flex:1"><label class="form-label">Latitude</label><input class="form-input" id="sd-lat" value="${s.decimal_latitude ?? ''}"></div>
+      <div class="form-group" style="flex:1"><label class="form-label">Longitude</label><input class="form-input" id="sd-lng" value="${s.decimal_longitude ?? ''}"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="form-group" style="flex:1"><label class="form-label">Marker 1</label><input class="form-input" id="sd-m1" value="${(s.marker_1_label||'').replace(/"/g,'&quot;')}"></div>
+      <div class="form-group" style="flex:1"><label class="form-label">Marker 2</label><input class="form-input" id="sd-m2" value="${(s.marker_2_label||'').replace(/"/g,'&quot;')}"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Location Remarks</label><input class="form-input" id="sd-remarks" value="${(s.location_remarks||'').replace(/"/g,'&quot;')}"></div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-primary" style="flex:1" onclick="sitesSave()">${isNew ? 'Create Site' : 'Save'}</button>
+      ${!isNew && !s.is_archived ? `<button class="btn btn-ghost" onclick="sitesArchive('${s.id}')">Archive</button>` : ''}
+      ${!isNew && s.is_archived ? `<button class="btn btn-ghost" onclick="sitesUnarchive('${s.id}')">Unarchive</button>` : ''}
+    </div>`;
+
+  document.getElementById('sites-gps-note').classList.add('on'); // map-click sets GPS
+}
+
+function sitesSetPicking(on) {
+  sitesState.picking = on;
+  document.getElementById('sites-gps-note').classList.toggle('on', on);
+  const c = sitesState.map && sitesState.map.getContainer();
+  if (c) c.classList.toggle('picking', on);
+}
+
+// Enable map-click GPS whenever the detail form is open (new or edit)
+function sitesEnablePickOnce() {
+  if (!sitesState.map || sitesState.map._wdcPickBound) return;
+  sitesState.map._wdcPickBound = true;
+  sitesState.map.on('click', e => {
+    const latEl = document.getElementById('sd-lat'), lngEl = document.getElementById('sd-lng');
+    if (!latEl || !lngEl) return;
+    latEl.value = e.latlng.lat.toFixed(6);
+    lngEl.value = e.latlng.lng.toFixed(6);
+    showToast('GPS set from map');
+  });
+}
+
+async function sitesSave() {
+  const code = document.getElementById('sd-code').value.trim().toUpperCase();
+  if (!code) { showToast('Site code is required', true); return; }
+  const latV = parseFloat(document.getElementById('sd-lat').value);
+  const lngV = parseFloat(document.getElementById('sd-lng').value);
+  const payload = {
+    site_code: code,
+    site_name: document.getElementById('sd-name').value.trim() || null,
+    verbatim_locality: document.getElementById('sd-locality').value.trim() || null,
+    formation: document.getElementById('sd-formation').value || null,
+    epoch: document.getElementById('sd-epoch').value.trim() || null,
+    decimal_latitude: isNaN(latV) ? null : latV,
+    decimal_longitude: isNaN(lngV) ? null : lngV,
+    marker_1_label: document.getElementById('sd-m1').value.trim() || null,
+    marker_2_label: document.getElementById('sd-m2').value.trim() || null,
+    location_remarks: document.getElementById('sd-remarks').value.trim() || null
+  };
+  if (sitesState.selectedId) payload.id = sitesState.selectedId;
+  else { payload.created_by = currentUser?.id || null; }
+
+  const { data, error } = await db.from('locations').upsert(payload, { onConflict: 'id' }).select('id').single();
+  if (error) { showToast(error.message, true); return; }
+  showToast('Site saved');
+  sitesState.selectedId = data?.id || sitesState.selectedId;
+  const keepId = sitesState.selectedId;
+  await sitesReload();
+  sitesState.selectedId = keepId;
+  const site = sitesState.sites.find(s => s.id === keepId);
+  renderSitesList(sitesFilteredSites());
+  if (site) renderSiteDetail(site);
+}
+
+async function sitesArchive(id) {
+  const { error } = await db.from('locations').update({ is_archived: true }).eq('id', id);
+  if (error) { showToast(error.message, true); return; }
+  showToast('Site archived'); sitesState.selectedId = null;
+  await sitesReload(); renderSiteDetail(null);
+}
+async function sitesUnarchive(id) {
+  const { error } = await db.from('locations').update({ is_archived: false }).eq('id', id);
+  if (error) { showToast(error.message, true); return; }
+  showToast('Site restored'); await sitesReload();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  REFERENCE DATA MANAGER (formations · taxa · elements · vocabularies)
+// ══════════════════════════════════════════════════════════════
+const REF_CONFIG = {
+  formations: {
+    label: 'Formation', table: 'formations',
+    order: [{ column: 'display_order' }, { column: 'name' }],
+    columns: [
+      { key: 'name',          label: 'Name',  type: 'text', required: true },
+      { key: 'display_order', label: 'Order', type: 'int',  default: 100 }
+    ],
+    listCols: ['name', 'display_order']
+  },
+  taxa: {
+    label: 'Taxon', table: 'taxa',
+    order: [{ column: 'formation_id' }, { column: 'display_order' }],
+    columns: [
+      { key: 'formation_id',    label: 'Formation',       type: 'formation', required: true },
+      { key: 'epoch',           label: 'Epoch',           type: 'text' },
+      { key: 'scientific_name', label: 'Scientific name', type: 'text', required: true },
+      { key: 'common_name',     label: 'Common name',     type: 'text' },
+      { key: 'icon_slug',       label: 'Icon slug',       type: 'text', hint: 'assets/dino/{slug}.png — auto-suggested from scientific name' },
+      { key: 'display_order',   label: 'Order',           type: 'int', default: 100 }
+    ],
+    listCols: ['icon', 'scientific_name', 'formation_name', 'epoch', 'common_name']
+  },
+  elements: {
+    label: 'Element', table: 'elements',
+    order: [{ column: 'display_order' }, { column: 'name' }],
+    columns: [
+      { key: 'name',          label: 'Name',  type: 'text', required: true },
+      { key: 'display_order', label: 'Order', type: 'int', default: 100 }
+    ],
+    listCols: ['name', 'display_order']
+  },
+  vocabularies: {
+    label: 'Vocabulary term', table: 'vocabularies',
+    order: [{ column: 'kind' }, { column: 'display_order' }],
+    columns: [
+      { key: 'kind',          label: 'Kind',  type: 'select', required: true,
+        options: ['condition', 'chemicals', 'preparations'] },
+      { key: 'value',         label: 'Value', type: 'text', required: true },
+      { key: 'display_order', label: 'Order', type: 'int', default: 100 }
+    ],
+    listCols: ['kind', 'value', 'display_order']
+  }
+};
+
+const refState = { type: 'formations', rows: [], formations: [], loaded: false, editingId: null };
+
+function slugify(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+}
+
+function refSelect(type) {
+  refState.type = type;
+  document.querySelectorAll('.ref-type').forEach(b =>
+    b.classList.toggle('active', b.dataset.ref === type));
+  refLoad();
+}
+
+async function refLoad() {
+  const cfg  = REF_CONFIG[refState.type];
+  const wrap = document.getElementById('ref-table-wrap');
+  wrap.innerHTML = '<div class="ref-empty">Loading…</div>';
+
+  // Formations are needed both for their own list and as taxa labels/dropdown.
+  if (!refState.formations.length || refState.type === 'formations') {
+    const { data: forms } = await db.from('formations').select('id,name,display_order').order('display_order');
+    refState.formations = forms || [];
+  }
+
+  let query = db.from(cfg.table).select('*');
+  cfg.order.forEach(o => { query = query.order(o.column, { ascending: true }); });
+  const { data, error } = await query;
+  if (error) { wrap.innerHTML = `<div class="ref-empty" style="color:var(--danger)">${error.message}</div>`; return; }
+
+  refState.rows = data || [];
+  refState.loaded = true;
+  renderRefTable();
+}
+
+function formationName(id) {
+  return refState.formations.find(f => f.id === id)?.name || '—';
+}
+
+function renderRefTable() {
+  const cfg  = REF_CONFIG[refState.type];
+  const wrap = document.getElementById('ref-table-wrap');
+  if (!refState.rows.length) { wrap.innerHTML = '<div class="ref-empty">No entries yet. Click “+ Add”.</div>'; return; }
+
+  const headers = cfg.listCols.map(c => {
+    const map = { icon: '', formation_name: 'Formation', scientific_name: 'Scientific name',
+                  common_name: 'Common', display_order: 'Order' };
+    return `<th>${map[c] ?? (REF_CONFIG[refState.type].columns.find(x=>x.key===c)?.label || c)}</th>`;
+  }).join('');
+
+  const rowsHtml = refState.rows.map(r => {
+    const cells = cfg.listCols.map(c => {
+      if (c === 'icon') {
+        return r.icon_slug
+          ? `<td><img class="ref-icon-preview" src="assets/dino/${r.icon_slug}.png" alt="" onerror="this.style.display='none'"></td>`
+          : '<td></td>';
+      }
+      if (c === 'formation_name') return `<td>${formationName(r.formation_id)}</td>`;
+      const v = r[c];
+      return `<td>${v === null || v === undefined || v === '' ? '—' : String(v)}</td>`;
+    }).join('');
+    const activeBadge = `<span class="ref-badge${r.is_active ? ' on' : ''}">${r.is_active ? 'active' : 'hidden'}</span>`;
+    return `<tr class="${r.is_active ? '' : 'inactive'}">
+      ${cells}
+      <td>${activeBadge}</td>
+      <td class="ref-actions-cell">
+        <button class="ref-link-btn" onclick="refOpenEditor('${r.id}')">Edit</button>
+        <button class="ref-link-btn" onclick="refToggleActive('${r.id}')">${r.is_active ? 'Hide' : 'Show'}</button>
+        <button class="ref-link-btn danger" onclick="refDelete('${r.id}')">Delete</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table class="ref-table">
+    <thead><tr>${headers}<th>Status</th><th></th></tr></thead>
+    <tbody>${rowsHtml}</tbody></table>`;
+}
+
+function refOpenEditor(id) {
+  const cfg = REF_CONFIG[refState.type];
+  refState.editingId = id;
+  const row = id ? refState.rows.find(r => r.id === id) : {};
+  document.getElementById('ref-modal-title').textContent =
+    (id ? 'Edit ' : 'Add ') + cfg.label;
+
+  const body = cfg.columns.map(col => {
+    const val = row[col.key] ?? col.default ?? '';
+    let field;
+    if (col.type === 'formation') {
+      const opts = refState.formations.map(f =>
+        `<option value="${f.id}" ${f.id === val ? 'selected' : ''}>${f.name}</option>`).join('');
+      field = `<select class="form-select" id="ref-f-${col.key}"><option value="">— select —</option>${opts}</select>`;
+    } else if (col.type === 'select') {
+      const opts = col.options.map(o =>
+        `<option value="${o}" ${o === val ? 'selected' : ''}>${o}</option>`).join('');
+      field = `<select class="form-select" id="ref-f-${col.key}">${opts}</select>`;
+    } else {
+      const t = col.type === 'int' ? 'number' : 'text';
+      const oninput = (refState.type === 'taxa' && col.key === 'scientific_name')
+        ? ` oninput="refSuggestSlug(this.value)"` : '';
+      field = `<input class="form-input" id="ref-f-${col.key}" type="${t}" value="${String(val).replace(/"/g,'&quot;')}"${oninput}>`;
+    }
+    return `<div class="form-group">
+      <label class="form-label">${col.label}${col.required ? ' *' : ''}</label>
+      ${field}
+      ${col.hint ? `<div style="font-size:.72rem;color:var(--text-dim);margin-top:3px">${col.hint}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('ref-modal-body').innerHTML = body;
+  openModal('ref-modal');
+}
+
+// Auto-fill the icon slug from the scientific name while typing (only if empty/unedited).
+function refSuggestSlug(sciName) {
+  const slugEl = document.getElementById('ref-f-icon_slug');
+  if (!slugEl) return;
+  if (!slugEl.value || slugEl.dataset.auto === '1') {
+    slugEl.value = slugify(sciName);
+    slugEl.dataset.auto = '1';
+  }
+}
+
+async function refSave() {
+  const cfg = REF_CONFIG[refState.type];
+  const btn = document.getElementById('ref-save-btn');
+  const payload = {};
+  for (const col of cfg.columns) {
+    const el = document.getElementById(`ref-f-${col.key}`);
+    let v = el.value;
+    if (col.type === 'int') v = v === '' ? (col.default ?? null) : parseInt(v, 10);
+    else v = (typeof v === 'string' ? v.trim() : v) || null;
+    if (col.required && (v === null || v === '')) {
+      showToast(`${col.label} is required`, true); return;
+    }
+    payload[col.key] = v;
+  }
+  if (refState.editingId) payload.id = refState.editingId;
+
+  btn.innerHTML = '<span class="spinner"></span>'; btn.disabled = true;
+  const { error } = await db.from(cfg.table).upsert(payload, { onConflict: 'id' });
+  btn.textContent = 'Save'; btn.disabled = false;
+  if (error) { showToast(error.message, true); return; }
+  showToast(`${cfg.label} saved`);
+  closeModal('ref-modal');
+  await refLoad();
+}
+
+async function refToggleActive(id) {
+  const row = refState.rows.find(r => r.id === id); if (!row) return;
+  const { error } = await db.from(REF_CONFIG[refState.type].table)
+    .update({ is_active: !row.is_active }).eq('id', id);
+  if (error) { showToast(error.message, true); return; }
+  refLoad();
+}
+
+function refDelete(id) {
+  const cfg = REF_CONFIG[refState.type];
+  const row = refState.rows.find(r => r.id === id); if (!row) return;
+  const label = row.scientific_name || row.name || row.value || 'this entry';
+  document.getElementById('confirm-title').textContent  = `Delete ${cfg.label}`;
+  document.getElementById('confirm-text').textContent   = `Delete “${label}”?`;
+  document.getElementById('confirm-sub').textContent    = 'This permanently removes it. Consider “Hide” to keep it for historical records.';
+  document.getElementById('confirm-ok-btn').textContent = 'Delete';
+  document.getElementById('confirm-ok-btn').className   = 'btn btn-danger';
+  pendingAction = async () => {
+    const { error } = await db.from(cfg.table).delete().eq('id', id);
+    if (error) { showToast(error.message, true); return; }
+    showToast(`${cfg.label} deleted`);
+    refLoad();
+  };
+  openModal('confirm-modal');
 }
 
 // ── SERVICE WORKER ────────────────────────────────────────────
