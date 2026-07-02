@@ -1049,7 +1049,7 @@ async function doInvite() {
   if (res.error) { showToast(res.error, true); return; }
   document.getElementById('invite-email').value = '';
   setTimeout(loadUsers, 1500);
-  if (res.invite_link) showInviteLink(email, res.invite_link, { emailed: res.emailed });
+  if (res.invite_link) showInviteLink(email, res.invite_link, { emailed: res.emailed, message: res.message });
   else showToast(res.message || `Invite emailed to ${email}`);
 }
 
@@ -1080,7 +1080,7 @@ function confirmReset(email) {
   pendingAction = async () => {
     const res = await callFunction({ action: 'reset_password', email });
     if (res.error) { showToast(res.error, true); return; }
-    if (res.reset_link) showInviteLink(email, res.reset_link, { kind: 'reset', emailed: res.emailed });
+    if (res.reset_link) showInviteLink(email, res.reset_link, { kind: 'reset', emailed: res.emailed, message: res.message });
     else showToast(res.message || `Reset email sent to ${email}`);
   };
   openModal('confirm-modal');
@@ -1143,9 +1143,13 @@ function showInviteLink(email, link, opts) {
   document.getElementById('invite-link-title').textContent =
     emailed ? (isReset ? 'Password Reset Sent' : 'Invite Sent')
             : (isReset ? 'Reset Link Ready' : 'Invite Link Ready');
-  document.getElementById('invite-link-desc').innerHTML = emailed
-    ? `A ${noun} email was sent to <strong>${email}</strong>. As a backup, you can also copy this link and send it directly. It expires in 24 hours.`
-    : `Email could not be sent — copy this ${noun} link and send it to <strong>${email}</strong> directly. It expires in 24 hours.`;
+  // Prefer the server's precise message (e.g. "already has an account") when provided.
+  const desc = opts.message
+    ? `${opts.message} The link expires in 24 hours.`
+    : (emailed
+        ? `A ${noun} email was sent to ${email}. As a backup, you can also copy this link and send it directly. It expires in 24 hours.`
+        : `Email could not be sent — copy this ${noun} link and send it to ${email} directly. It expires in 24 hours.`);
+  document.getElementById('invite-link-desc').textContent = desc;
   document.getElementById('invite-link-url').value = link || '';
   openModal('invite-link-modal');
 }
