@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WDC Admin</title>
+<title>WDC Collections</title>
+<link rel="icon" type="image/png" href="WDC_adminApp.png">
+<link rel="apple-touch-icon" href="WDC_adminApp.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4A3728">
+<meta name="apple-mobile-web-app-title" content="WDC Collections">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <!-- Leaflet (map) + MiniMap plugin -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
@@ -49,6 +55,9 @@
   .header-right { display: flex; align-items: center; gap: 12px; }
   .user-chip    { font-size: .8rem; opacity: .75; }
   .role-chip    { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; background: rgba(255,255,255,.16); color: #fff; padding: 2px 8px; border-radius: 10px; }
+  .db-status    { display: flex; align-items: center; gap: 6px; font-size: .68rem; color: rgba(255,255,255,.7); }
+  .db-light     { width: 11px; height: 11px; border-radius: 50%; background: #C0392B; box-shadow: 0 0 6px rgba(192,32,32,.7); transition: background .2s, box-shadow .2s; flex-shrink: 0; }
+  .db-light.ok  { background: #2ecc71; box-shadow: 0 0 6px rgba(46,204,113,.8); }
 
   /* ── Buttons ── */
   .btn {
@@ -448,9 +457,33 @@
   .info-link-title { font-size: .9rem; font-weight: 600; margin-bottom: 2px; }
   .info-link-url   { font-size: .75rem; color: var(--text-dim); }
   .info-link-arrow { font-size: 1rem; color: var(--text-dim); }
+
+  /* ── Splash ── */
+  #admin-splash {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; z-index: 9999; transition: opacity .4s;
+  }
+  #admin-splash img { width: 200px; max-width: 60vw; border-radius: 20px; filter: drop-shadow(0 4px 16px rgba(74,55,40,.18)); }
+  #admin-splash .s-title { font-size: 1.2rem; color: var(--primary); letter-spacing: .08em; font-weight: 700; }
+  #admin-splash .s-sub { font-size: .85rem; color: var(--text-dim); }
+  #admin-splash.hide { opacity: 0; pointer-events: none; }
 </style>
 </head>
 <body>
+
+<!-- ── SPLASH ── -->
+<div id="admin-splash">
+  <img src="WDC_adminApp.png" alt="WDC Collections" onerror="this.style.display='none'">
+  <div class="s-title">WDC COLLECTIONS</div>
+  <div class="s-sub">Wyoming Dinosaur Center</div>
+</div>
+<script>
+  window.addEventListener('load', () => setTimeout(() => {
+    const s = document.getElementById('admin-splash');
+    if (s) { s.classList.add('hide'); setTimeout(() => s.remove(), 500); }
+  }, 500));
+</script>
 
 <!-- ── LOGIN ── -->
 <div id="login-screen">
@@ -489,6 +522,7 @@
       </nav>
     </div>
     <div class="header-right">
+      <span class="db-status" title="Checking database…"><span class="db-light" id="db-light"></span>DB</span>
       <span class="role-chip" id="header-role"></span>
       <span class="user-chip" id="header-user"></span>
       <button class="btn btn-ghost btn-sm"
@@ -856,6 +890,33 @@ function switchTab(name) {
   if (name === 'specimens') specsInit();
 }
 
+// ── Database connection light ─────────────────────────────────
+let dbCheckTimer = null;
+function setDbLight(ok, title) {
+  const light = document.getElementById('db-light');
+  if (!light) return;
+  light.classList.toggle('ok', ok);
+  const wrap = light.closest('.db-status');
+  if (wrap) wrap.title = title;
+}
+async function checkDbConnection() {
+  if (!navigator.onLine) { setDbLight(false, 'Offline — no network connection'); return; }
+  try {
+    // Lightweight round-trip to Supabase (count only, no rows) on an always-present table.
+    const { error } = await db.from('profiles').select('id', { head: true, count: 'exact' });
+    setDbLight(!error, error ? ('Database error: ' + error.message) : 'Connected to Supabase');
+  } catch (e) {
+    setDbLight(false, 'Supabase unreachable');
+  }
+}
+function startDbMonitor() {
+  checkDbConnection();
+  clearInterval(dbCheckTimer);
+  dbCheckTimer = setInterval(checkDbConnection, 25000); // re-check every 25s
+  window.addEventListener('online', checkDbConnection);
+  window.addEventListener('offline', checkDbConnection);
+}
+
 // Reflect the signed-in user's role in the header and available tabs.
 function applyRoleUI(role) {
   currentRole = role || 'staff';
@@ -907,6 +968,7 @@ async function doLogin() {
   document.getElementById('header-user').textContent = profile.full_name || data.user.email;
   applyRoleUI(role);
   showApp();
+  startDbMonitor();
   // Land admins on Users; everyone else on Sites.
   if (role === 'admin') { switchTab('users'); loadUsers(); }
   else { switchTab('sites'); }
