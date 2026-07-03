@@ -882,6 +882,7 @@ function showLogin() { document.getElementById('login-screen').style.display = '
 // ── TABS ──────────────────────────────────────────────────────
 function switchTab(name) {
   if (name === 'users' && currentRole !== 'admin') return; // Users is admin-only
+  if (name === 'info' && currentRole !== 'admin' && currentRole !== 'management') return; // Info: admin/management only
   document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.header-tab').forEach(t => t.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.add('active');
@@ -922,6 +923,8 @@ function applyRoleUI(role) {
   currentRole = role || 'staff';
   const usersTab = document.querySelector('[data-tab="users"]');
   if (usersTab) usersTab.style.display = (currentRole === 'admin') ? '' : 'none';
+  const infoTab = document.querySelector('[data-tab="info"]');
+  if (infoTab) infoTab.style.display = (currentRole === 'admin' || currentRole === 'management') ? '' : 'none';
   const chip = document.getElementById('header-role');
   if (chip) chip.textContent = currentRole.charAt(0).toUpperCase() + currentRole.slice(1);
 }
