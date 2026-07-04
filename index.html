@@ -96,6 +96,9 @@
   .invite-bar input  { width: 240px; }
   .invite-bar select { width: 140px; }
 
+  /* ── Users layout: columns + detail panel ── */
+  .users-body { display: grid; grid-template-columns: minmax(0, 1fr) 340px; align-items: start; }
+
   /* ── Role columns grid ── */
   .columns-area {
     padding: 20px 24px;
@@ -104,6 +107,29 @@
     gap: 14px;
     align-items: start;
   }
+
+  /* ── User detail panel ── */
+  .user-detail { border-left: 1px solid var(--border); background: var(--surface); padding: 20px; min-height: 60vh; }
+  .user-detail-empty { color: var(--text-dim); font-size: .85rem; text-align: center; padding: 30px 6px; }
+  .ud-head { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+  .ud-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.05rem; font-weight: 700; flex-shrink: 0; }
+  .ud-name { font-size: 1.05rem; font-weight: 700; line-height: 1.2; }
+  .ud-rolebadge { font-size: .64rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; padding: 2px 8px; border-radius: 10px; color: #fff; display: inline-block; margin-top: 4px; }
+  .ud-field { margin-bottom: 12px; }
+  .ud-label { font-size: .64rem; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); margin-bottom: 2px; }
+  .ud-value { font-size: .9rem; color: var(--text); word-break: break-word; white-space: pre-line; }
+  .ud-value.empty { color: var(--text-dim); font-style: italic; }
+  .ud-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 22px; }
+  .ud-actions .btn { width: 100%; }
+  .you-tag2 { font-size: .68rem; color: var(--text-dim); font-weight: 400; }
+
+  .user-card-role { font-size: .62rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-dim); margin-top: 1px; }
+  .role-admin      .user-card-role { color: #4A3728; }
+  .role-management .user-card-role { color: var(--gold); }
+  .role-registrar  .user-card-role { color: #1A4A78; }
+  .role-staff      .user-card-role { color: var(--success); }
+  .role-researcher .user-card-role { color: #601060; }
+  .role-intern     .user-card-role { color: var(--warning); }
 
   /* ── Individual role column ── */
   .role-column {
@@ -556,8 +582,13 @@
       <button class="btn btn-ghost btn-sm" style="margin-left:auto;align-self:center" onclick="loadUsers()">↻ Refresh</button>
     </div>
 
-    <div class="columns-area" id="role-columns">
-      <div style="grid-column:1/-1;text-align:center;color:var(--text-dim);padding:40px">Loading…</div>
+    <div class="users-body">
+      <div class="columns-area" id="role-columns">
+        <div style="grid-column:1/-1;text-align:center;color:var(--text-dim);padding:40px">Loading…</div>
+      </div>
+      <aside class="user-detail" id="user-detail">
+        <div class="user-detail-empty">Select a user to see their details.</div>
+      </aside>
     </div>
 
   </div>
@@ -875,7 +906,7 @@ let currentSession = null;
 let currentRole    = null;
 let pendingAction  = null;
 let roleTargetId   = null;
-const selectedByRole = {}; // { roleName: { id, email, full_name, role } }
+let selectedUser = null; // the single currently-selected user profile
 
 // ── INIT ──────────────────────────────────────────────────────
 db.auth.onAuthStateChange((event, session) => {
@@ -989,7 +1020,18 @@ async function doLogin() {
 async function doSignOut() { await db.auth.signOut(); }
 
 // ── LOAD USERS ────────────────────────────────────────────────
-const ROLE_ORDER = ['admin', 'management', 'registrar', 'staff', 'researcher', 'intern'];
+// Roles grouped into columns (some roles will have very few users).
+const USER_COLUMNS = [
+  { title: 'Admin & Management', roles: ['admin', 'management'] },
+  { title: 'Registrar & Staff',  roles: ['registrar', 'staff'] },
+  { title: 'Researcher',         roles: ['researcher'] },
+  { title: 'Intern',             roles: ['intern'] }
+];
+const ROLE_LABEL = { admin:'Admin', management:'Management', registrar:'Registrar', staff:'Staff', researcher:'Researcher', intern:'Intern' };
+const ROLE_COLOR = { admin:'#4A3728', management:'#A07840', registrar:'#1A4A78', staff:'#276C27', researcher:'#601060', intern:'#C06C00' };
+const ROLE_RANK  = { admin:0, management:1, registrar:2, staff:3, researcher:4, intern:5 };
+
+let usersById = {};
 
 async function loadUsers() {
   const container = document.getElementById('role-columns');
@@ -997,7 +1039,7 @@ async function loadUsers() {
 
   const { data: profiles, error } = await db
     .from('profiles')
-    .select('id, email, full_name, role, created_at')
+    .select('id, email, full_name, phone, mailing_address, role, created_at')
     .order('full_name');
 
   if (error) {
@@ -1005,49 +1047,36 @@ async function loadUsers() {
     return;
   }
 
-  // Group by role
-  const byRole = {};
-  ROLE_ORDER.forEach(r => byRole[r] = []);
-  profiles.forEach(p => { if (byRole[p.role]) byRole[p.role].push(p); });
+  usersById = {};
+  profiles.forEach(p => usersById[p.id] = p);
+  selectedUser = null;
+  renderUserDetail(null);
 
-  // Clear old selections
-  Object.keys(selectedByRole).forEach(k => delete selectedByRole[k]);
-
-  container.innerHTML = ROLE_ORDER.map(role => {
-    const users = byRole[role];
+  container.innerHTML = USER_COLUMNS.map(col => {
+    const users = profiles
+      .filter(p => col.roles.includes(p.role))
+      .sort((a, b) => (ROLE_RANK[a.role] - ROLE_RANK[b.role]) || (a.full_name || a.email).localeCompare(b.full_name || b.email));
     return `
-      <div class="role-column role-${role}" id="col-${role}">
+      <div class="role-column">
         <div class="role-col-header">
           <div class="role-col-title">
-            <span>${role}</span>
+            <span>${col.title}</span>
             <span class="role-col-count">${users.length}</span>
-          </div>
-          <div class="role-col-actions">
-            <button class="btn btn-ghost" id="act-role-${role}"  disabled
-                    onclick="openRoleModalForSelected('${role}')">Role</button>
-            <button class="btn btn-ghost" id="act-reset-${role}" disabled
-                    onclick="confirmResetForSelected('${role}')">Password</button>
-            <button class="btn btn-ghost" id="act-del-${role}"   disabled
-                    onclick="confirmDeleteForSelected('${role}')"
-                    style="color:var(--danger);border-color:var(--danger)">Delete</button>
           </div>
         </div>
         <div class="role-col-body">
           ${users.length === 0
-            ? `<div class="col-empty">No ${role}s</div>`
+            ? `<div class="col-empty">None</div>`
             : users.map(p => {
                 const isMe = p.id === currentUser?.id;
                 const initials = (p.full_name || p.email).slice(0, 2).toUpperCase();
                 return `
-                  <div class="user-card${isMe ? ' me' : ''}" id="card-${p.id}"
-                       onclick="selectUser('${role}','${p.id}')">
+                  <div class="user-card role-${p.role}" id="card-${p.id}" onclick="selectUser('${p.id}')">
                     <div class="user-avatar">${initials}</div>
                     <div class="user-card-info">
-                      <div class="user-card-name">
-                        ${p.full_name || '—'}
-                        ${isMe ? '<span class="you-tag">(you)</span>' : ''}
-                      </div>
+                      <div class="user-card-name">${p.full_name || '—'} ${isMe ? '<span class="you-tag">(you)</span>' : ''}</div>
                       <div class="user-card-email">${p.email}</div>
+                      ${col.roles.length > 1 ? `<div class="user-card-role">${ROLE_LABEL[p.role] || p.role}</div>` : ''}
                     </div>
                   </div>`;
               }).join('')
@@ -1055,59 +1084,51 @@ async function loadUsers() {
         </div>
       </div>`;
   }).join('');
-
-  // Store profile data for column actions
-  container._profiles = profiles;
 }
 
-// ── SELECTION ─────────────────────────────────────────────────
-function selectUser(role, userId) {
-  const colCards = document.querySelectorAll(`#col-${role} .user-card`);
-
-  // Toggle off if already selected
-  if (selectedByRole[role]?.id === userId) {
-    selectedByRole[role] = null;
-    colCards.forEach(c => c.classList.remove('selected'));
-    setColActionsEnabled(role, false);
-    return;
-  }
-
-  // Select
-  colCards.forEach(c => c.classList.remove('selected'));
+// ── SELECTION (single user across the whole page) ─────────────
+function selectUser(userId) {
+  const alreadySelected = selectedUser?.id === userId;
+  document.querySelectorAll('#role-columns .user-card.selected').forEach(c => c.classList.remove('selected'));
+  if (alreadySelected) { selectedUser = null; renderUserDetail(null); return; }
   document.getElementById(`card-${userId}`)?.classList.add('selected');
-
-  // Find profile from stored data
-  const profiles = document.getElementById('role-columns')._profiles || [];
-  const p = profiles.find(x => x.id === userId);
-  if (p) selectedByRole[role] = p;
-
-  setColActionsEnabled(role, true);
-  // Can't delete yourself
-  if (userId === currentUser?.id) {
-    document.getElementById(`act-del-${role}`).disabled = true;
-  }
+  selectedUser = usersById[userId] || null;
+  renderUserDetail(selectedUser);
 }
 
-function setColActionsEnabled(role, enabled) {
-  ['role', 'reset', 'del'].forEach(a => {
-    const btn = document.getElementById(`act-${a}-${role}`);
-    if (btn) btn.disabled = !enabled;
-  });
+function renderUserDetail(p) {
+  const el = document.getElementById('user-detail');
+  if (!el) return;
+  if (!p) { el.innerHTML = '<div class="user-detail-empty">Select a user to see their details.</div>'; return; }
+  const isMe = p.id === currentUser?.id;
+  const initials = (p.full_name || p.email).slice(0, 2).toUpperCase();
+  const color = ROLE_COLOR[p.role] || 'var(--primary)';
+  const fld = (label, val) =>
+    `<div class="ud-field"><div class="ud-label">${label}</div><div class="ud-value${val ? '' : ' empty'}">${val ? String(val).replace(/</g,'&lt;') : 'Not provided'}</div></div>`;
+  const joined = p.created_at ? new Date(p.created_at).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' }) : null;
+  el.innerHTML = `
+    <div class="ud-head">
+      <div class="ud-avatar" style="background:${color}">${initials}</div>
+      <div>
+        <div class="ud-name">${p.full_name || '—'} ${isMe ? '<span class="you-tag2">(you)</span>' : ''}</div>
+        <span class="ud-rolebadge" style="background:${color}">${ROLE_LABEL[p.role] || p.role}</span>
+      </div>
+    </div>
+    ${fld('Email', p.email)}
+    ${fld('Phone', p.phone)}
+    ${fld('Mailing address', p.mailing_address)}
+    ${fld('Member since', joined)}
+    <div class="ud-actions">
+      <button class="btn btn-primary" onclick="openRoleModalForSelected()">Change Role</button>
+      <button class="btn btn-gold" onclick="confirmResetForSelected()">Send Password Reset</button>
+      <button class="btn btn-danger" onclick="confirmDeleteForSelected()" ${isMe ? 'disabled title="You cannot delete your own account"' : ''}>Delete User</button>
+    </div>`;
 }
 
-// ── COLUMN ACTION HANDLERS ────────────────────────────────────
-function openRoleModalForSelected(role) {
-  const p = selectedByRole[role]; if (!p) return;
-  openRoleModal(p.id, p.email, p.role);
-}
-function confirmResetForSelected(role) {
-  const p = selectedByRole[role]; if (!p) return;
-  confirmReset(p.email);
-}
-function confirmDeleteForSelected(role) {
-  const p = selectedByRole[role]; if (!p) return;
-  confirmDelete(p.id, p.email);
-}
+// ── ACTION HANDLERS (operate on the selected user) ────────────
+function openRoleModalForSelected() { if (selectedUser) openRoleModal(selectedUser.id, selectedUser.email, selectedUser.role); }
+function confirmResetForSelected()  { if (selectedUser) confirmReset(selectedUser.email); }
+function confirmDeleteForSelected() { if (selectedUser && selectedUser.id !== currentUser?.id) confirmDelete(selectedUser.id, selectedUser.email); }
 
 // ── INVITE ────────────────────────────────────────────────────
 async function doInvite() {
