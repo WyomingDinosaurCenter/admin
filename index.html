@@ -457,6 +457,8 @@
   .info-link-title { font-size: .9rem; font-weight: 600; margin-bottom: 2px; }
   .info-link-url   { font-size: .75rem; color: var(--text-dim); }
   .info-link-arrow { font-size: 1rem; color: var(--text-dim); }
+  .info-note { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--gold); border-radius: var(--radius); padding: 14px 16px; font-size: .82rem; line-height: 1.55; color: var(--text); }
+  .info-note strong { color: var(--primary); }
 
   /* ── Splash ── */
   #admin-splash {
@@ -755,6 +757,13 @@
           </div>
           <div class="info-link-arrow">↗</div>
         </a>
+      </div>
+
+      <div class="info-section">
+        <div class="info-section-title">Data Conventions</div>
+        <div class="info-note">
+          <strong>Taxonomy ranks.</strong> Dinosaur groups are cladistic — nested clades without fixed Linnaean ranks — so the Paleobiology Database leaves <em>order</em> mostly blank and <em>class</em> inconsistent. For consistency across cataloging and Darwin Core export, WDC adopts a uniform ranked convention: <em>kingdom</em> = Animalia, <em>phylum</em> = Chordata, <em>class</em> = Dinosauria, and <em>order</em> = Ornithischia (bird-hipped) or Saurischia (lizard-hipped); <em>family</em> is kept as assigned by PBDB. This is a deliberate choice for tidy records, even though modern phylogenetics treats Dinosauria / Saurischia / Ornithischia as unranked clades rather than a class and order.
+        </div>
       </div>
     </div>
     </div><!-- end subtab-view info-links -->
