@@ -572,7 +572,6 @@
         <select id="invite-role">
           <option value="intern">Intern</option>
           <option value="staff">Staff</option>
-          <option value="registrar">Registrar</option>
           <option value="management">Management</option>
           <option value="researcher">Researcher</option>
           <option value="admin">Admin</option>
@@ -834,7 +833,6 @@
         <select class="form-select" id="role-modal-select">
           <option value="intern">Intern</option>
           <option value="staff">Staff</option>
-          <option value="registrar">Registrar</option>
           <option value="management">Management</option>
           <option value="researcher">Researcher</option>
           <option value="admin">Admin</option>
@@ -1022,14 +1020,14 @@ async function doSignOut() { await db.auth.signOut(); }
 // ── LOAD USERS ────────────────────────────────────────────────
 // Roles grouped into columns (some roles will have very few users).
 const USER_COLUMNS = [
-  { title: 'Admin & Management', roles: ['admin', 'management'] },
-  { title: 'Registrar & Staff',  roles: ['registrar', 'staff'] },
+  { title: 'Admin & Management', roles: ['admin', 'management'], showRole: true },
+  { title: 'Staff',              roles: ['staff', 'registrar'] },  // 'registrar' kept only so any legacy record still shows as Staff
   { title: 'Researcher',         roles: ['researcher'] },
   { title: 'Intern',             roles: ['intern'] }
 ];
-const ROLE_LABEL = { admin:'Admin', management:'Management', registrar:'Registrar', staff:'Staff', researcher:'Researcher', intern:'Intern' };
-const ROLE_COLOR = { admin:'#4A3728', management:'#A07840', registrar:'#1A4A78', staff:'#276C27', researcher:'#601060', intern:'#C06C00' };
-const ROLE_RANK  = { admin:0, management:1, registrar:2, staff:3, researcher:4, intern:5 };
+const ROLE_LABEL = { admin:'Admin', management:'Management', registrar:'Staff', staff:'Staff', researcher:'Researcher', intern:'Intern' };
+const ROLE_COLOR = { admin:'#4A3728', management:'#A07840', registrar:'#276C27', staff:'#276C27', researcher:'#601060', intern:'#C06C00' };
+const ROLE_RANK  = { admin:0, management:1, registrar:3, staff:3, researcher:4, intern:5 };
 
 let usersById = {};
 
@@ -1076,7 +1074,7 @@ async function loadUsers() {
                     <div class="user-card-info">
                       <div class="user-card-name">${p.full_name || '—'} ${isMe ? '<span class="you-tag">(you)</span>' : ''}</div>
                       <div class="user-card-email">${p.email}</div>
-                      ${col.roles.length > 1 ? `<div class="user-card-role">${ROLE_LABEL[p.role] || p.role}</div>` : ''}
+                      ${col.showRole ? `<div class="user-card-role">${ROLE_LABEL[p.role] || p.role}</div>` : ''}
                     </div>
                   </div>`;
               }).join('')
