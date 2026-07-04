@@ -102,7 +102,7 @@ Email requires a configured SMTP provider (Resend) — see the `supabase` repo R
 
 ### 1. Supabase configuration
 
-Deploy the schema from the `supabase` repo (`schema.sql`, then the reference-data and `rls-sites.sql` scripts — see that repo's README for order).
+Deploy the schema from the `supabase` repo (`schema.sql`, then `reference-schema.sql`, then `reference-genera.sql` — see that repo's README).
 
 In **Authentication → URL Configuration**:
 - **Site URL**: `https://{your-github-org}.github.io`
