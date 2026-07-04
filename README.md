@@ -58,12 +58,13 @@ Any role can sign in to the desktop app; features are gated per role (see the ma
 
 | Role | Access |
 |------|--------|
-| `intern` | View; create/edit own specimens; **create + edit sites**; intake |
-| `staff` | View; create/edit own specimens; **create + edit sites**; intake |
-| `registrar` | Catalog any specimen; sites; custody; reference data (view) |
-| `management` | Edit any record; archive sites; reference data (edit) |
+| `intern` | Field data entry (seasonal); view all; create/edit specimens; **create + edit sites**; intake |
+| `staff` | Field collection + cataloging; edit specimens, sites, custody; intake |
+| `management` | Edit any record; archive sites; edit reference data; Info tab |
 | `researcher` | Read-only |
 | `admin` | Full access; **Users** panel (invite / roles / reset / delete) |
+
+*(The former `registrar` role was merged into `staff`.)*
 
 Enforcement lives in Supabase RLS + the `admin-users` Edge Function; the UI mirrors it. Users is the only panel gated in the UI today (admin-only); finer per-action limits are enforced by RLS and tightened over time.
 
