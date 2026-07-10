@@ -1072,11 +1072,10 @@ async function doSignOut() { await db.auth.signOut(); }
 // ── LOAD USERS ────────────────────────────────────────────────
 // Roles grouped into columns (some roles will have very few users).
 const USER_COLUMNS = [
-  { title: 'Admin',      roles: ['admin'] },
-  { title: 'Management', roles: ['management'] },
-  { title: 'Staff',      roles: ['staff', 'registrar'] },  // 'registrar' kept only so any legacy record still shows as Staff
-  { title: 'Researcher', roles: ['researcher'] },
-  { title: 'Intern',     roles: ['intern'] }
+  { title: 'Admin / Management', roles: ['admin', 'management'] },
+  { title: 'Staff',             roles: ['staff', 'registrar'] },  // 'registrar' kept only so any legacy record still shows as Staff
+  { title: 'Intern',            roles: ['intern'] },
+  { title: 'Researcher',        roles: ['researcher'] }
 ];
 const ROLE_LABEL = { admin:'Admin', management:'Management', registrar:'Staff', staff:'Staff', researcher:'Researcher', intern:'Intern' };
 const ROLE_COLOR = { admin:'#4A3728', management:'#A07840', registrar:'#276C27', staff:'#276C27', researcher:'#601060', intern:'#C06C00' };
