@@ -475,6 +475,8 @@
   @media (max-width: 1000px) { .intake-split { grid-template-columns: 1fr; } }
   .intake-scan { border-right: 1px solid var(--border); background: #f3efe9; padding: 12px; position: sticky; top: 0; max-height: calc(100vh - 52px); overflow: auto; }
   .intake-scan img { width: 100%; border: 1px solid var(--border); border-radius: 6px; cursor: zoom-in; }
+  .intake-scan .intake-pdf { width: 100%; height: calc(100vh - 96px); border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+  .intake-scan .intake-pdf-open { display: inline-block; margin-top: 8px; font-size: .8rem; color: var(--accent); text-decoration: none; }
   .intake-forms { padding: 14px 18px 60px; }
   .intake-review-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 4; }
   .intake-review-title { font-weight: 700; }
@@ -1472,6 +1474,17 @@ function intakeFieldHtml(si, spec, f) {
   return `<div class="intake-fg${full}${low ? ' low' : ''}"><label>${label}${confBadge}</label>${field}</div>`;
 }
 
+function intakeScanHtml(job, url) {
+  if (!url) return '<div class="intake-empty">Scan preview unavailable</div>';
+  const name = (job.filename || job.storage_path || '').toLowerCase();
+  const isPdf = name.endsWith('.pdf');
+  if (isPdf) {
+    return `<iframe class="intake-pdf" src="${url}#toolbar=1&view=FitH" title="scan"></iframe>
+            <a class="intake-pdf-open" href="${url}" target="_blank" rel="noopener">Open PDF in new tab ↗</a>`;
+  }
+  return `<img src="${url}" alt="scan" onclick="specLightbox('${url}')">`;
+}
+
 function renderIntakeReview(job, imgUrl) {
   const specs = intakeState.working.specimens || [];
   const el = document.getElementById('intake-review');
@@ -1497,7 +1510,7 @@ function renderIntakeReview(job, imgUrl) {
       </div>
     </div>
     <div class="intake-split">
-      <div class="intake-scan">${imgUrl ? `<img src="${imgUrl}" alt="scan" onclick="specLightbox('${imgUrl}')">` : '<div class="intake-empty">Scan preview unavailable</div>'}</div>
+      <div class="intake-scan">${intakeScanHtml(job, imgUrl)}</div>
       <div class="intake-forms" oninput="intakeDirty()" onchange="intakeDirty()">${forms}</div>
     </div>`;
   setIntakeSaveStatus('');
