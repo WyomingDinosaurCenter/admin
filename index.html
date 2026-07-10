@@ -107,6 +107,7 @@
     gap: 14px;
     align-items: start;
   }
+  .role-col-stack { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 
   /* ── User detail panel ── */
   .user-detail { border-left: 1px solid var(--border); background: var(--surface); padding: 20px; min-height: 60vh; }
@@ -1071,11 +1072,13 @@ async function doSignOut() { await db.auth.signOut(); }
 
 // ── LOAD USERS ────────────────────────────────────────────────
 // Roles grouped into columns (some roles will have very few users).
+// Each entry is a grid column; a column holds one or more stacked boxes.
 const USER_COLUMNS = [
-  { title: 'Admin / Management', roles: ['admin', 'management'] },
-  { title: 'Staff',             roles: ['staff', 'registrar'] },  // 'registrar' kept only so any legacy record still shows as Staff
-  { title: 'Intern',            roles: ['intern'] },
-  { title: 'Researcher',        roles: ['researcher'] }
+  [ { title: 'Admin',      roles: ['admin'] },
+    { title: 'Management', roles: ['management'] } ],                 // Admin stacked above Management
+  [ { title: 'Staff',      roles: ['staff', 'registrar'] } ],         // 'registrar' kept only so legacy records show as Staff
+  [ { title: 'Intern',     roles: ['intern'] } ],
+  [ { title: 'Researcher', roles: ['researcher'] } ]
 ];
 const ROLE_LABEL = { admin:'Admin', management:'Management', registrar:'Staff', staff:'Staff', researcher:'Researcher', intern:'Intern' };
 const ROLE_COLOR = { admin:'#4A3728', management:'#A07840', registrar:'#276C27', staff:'#276C27', researcher:'#601060', intern:'#C06C00' };
@@ -1102,15 +1105,15 @@ async function loadUsers() {
   selectedUser = null;
   renderUserDetail(null);
 
-  container.innerHTML = USER_COLUMNS.map(col => {
+  const renderBox = box => {
     const users = profiles
-      .filter(p => col.roles.includes(p.role))
+      .filter(p => box.roles.includes(p.role))
       .sort((a, b) => (ROLE_RANK[a.role] - ROLE_RANK[b.role]) || (a.full_name || a.email).localeCompare(b.full_name || b.email));
     return `
       <div class="role-column">
         <div class="role-col-header">
           <div class="role-col-title">
-            <span>${col.title}</span>
+            <span>${box.title}</span>
             <span class="role-col-count">${users.length}</span>
           </div>
         </div>
@@ -1126,14 +1129,18 @@ async function loadUsers() {
                     <div class="user-card-info">
                       <div class="user-card-name">${p.full_name || '—'} ${isMe ? '<span class="you-tag">(you)</span>' : ''}</div>
                       <div class="user-card-email">${p.email}</div>
-                      ${col.showRole ? `<div class="user-card-role">${ROLE_LABEL[p.role] || p.role}</div>` : ''}
+                      ${box.showRole ? `<div class="user-card-role">${ROLE_LABEL[p.role] || p.role}</div>` : ''}
                     </div>
                   </div>`;
               }).join('')
           }
         </div>
       </div>`;
-  }).join('');
+  };
+
+  container.innerHTML = USER_COLUMNS.map(col =>
+    `<div class="role-col-stack">${col.map(renderBox).join('')}</div>`
+  ).join('');
 }
 
 // ── SELECTION (single user across the whole page) ─────────────
