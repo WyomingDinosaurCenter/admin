@@ -72,7 +72,7 @@ Enforcement lives in Supabase RLS + the `admin-users` Edge Function; the UI mirr
 
 ## Invite & Password Reset Flow
 
-Both send email automatically via the project's configured SMTP (Resend), with a copyable backup link shown to the admin in case the email doesn't arrive.
+Both send email automatically via the project's configured SMTP (the museum's Google Workspace account), with a copyable backup link shown to the admin in case the email doesn't arrive.
 
 1. Admin enters email + role in the Users tab → **+ New User** (or picks a user → **Password**)
 2. The `admin-users` Edge Function creates/sets the account and **emails** the recipient a link to `onboard.html`
@@ -94,7 +94,7 @@ Supported actions:
 | `reset_password` | **Email a recovery link** (`resetPasswordForEmail`) → `onboard.html`; returns a backup link |
 | `deactivate` | Delete a user account (cannot delete self) |
 
-Email requires a configured SMTP provider (Resend) — see the `supabase` repo README. Redeploy after changes: `supabase functions deploy admin-users`.
+Email requires custom SMTP (the museum's Google Workspace account) — see the `supabase` repo README. Redeploy after changes: `supabase functions deploy admin-users`.
 
 ---
 
@@ -110,7 +110,7 @@ In **Authentication → URL Configuration**:
 
 ### 2. Email (SMTP)
 
-Invite and password-reset emails send through the project's SMTP provider. In **Authentication → Emails / SMTP**, enable custom SMTP (Resend) with a **verified sender address/domain**. Custom SMTP is available on the Supabase free tier; the built-in sender is capped at ~2 emails/hour and won't work for real onboarding.
+Invite and password-reset emails send through custom SMTP — the museum's **Google Workspace** account. In **Authentication → Emails → SMTP Settings**, use `smtp.gmail.com` port `465`, username = a `@wyomingdinosaurcenter.org` sending address, password = a Google **App Password** (requires 2-Step Verification on that account), sender = the same address. The built-in Supabase sender is capped at ~2 emails/hour and only reaches team members, so it won't work for real onboarding. Full walkthrough in the `supabase` repo README.
 
 ### 3. Edge Function secrets
 
