@@ -484,6 +484,16 @@
 
   .intake-spec { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 14px; background: var(--surface); overflow: hidden; }
   .intake-spec-head { padding: 9px 12px; background: var(--bg); border-bottom: 1px solid var(--border); font-weight: 700; font-size: .85rem; }
+  /* page navigator + specimen tabs */
+  .intake-pagebar { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .intake-pagechip { font-size: .74rem; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg); color: var(--text); cursor: pointer; text-transform: capitalize; }
+  .intake-pagechip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .intake-spectabs { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 12px 0; position: sticky; top: 0; background: var(--bg); z-index: 2; }
+  .intake-spectab { font-size: .78rem; padding: 5px 11px; border: 1px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0; background: var(--surface); color: var(--text); cursor: pointer; }
+  .intake-spectab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .intake-spectab.add { border-style: dashed; color: var(--text-dim); background: transparent; }
+  .intake-spec-pane { border: 1px solid var(--border); border-radius: 0 var(--radius) var(--radius) var(--radius); background: var(--surface); overflow: hidden; }
+  .intake-spec-del { float: right; font-size: .68rem; padding: 2px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: var(--danger); cursor: pointer; font-weight: 400; text-transform: none; letter-spacing: 0; }
   .intake-fields { padding: 6px 12px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 9px 12px; }
   .intake-fg { display: flex; flex-direction: column; gap: 2px; }
   .intake-fg.full { grid-column: 1 / -1; }
@@ -1324,32 +1334,72 @@ const INTAKE_ENUMS = {
   curCond: ['Unbroken', 'Broken', 'Shattered', 'Weathered', 'Eroded', 'Oxidized'],
   chems:   ['Thin Cyano', 'Thick Cyano', 'Accelerator', 'None']
 };
-const INTAKE_GROUPS = [
-  { title: 'Identification', fields: [
-    ['catalogNumber','Specimen #','text'], ['scientificName','Taxon','text'], ['verbatimElement','Element','text'] ]},
-  { title: 'Discovery', fields: [
-    ['eventDate','Date discovered','text'], ['recordedBy','Discovered by','text'],
-    ['inSitu','In situ','select','yesno'], ['approxPositionKnown','Approx. position known','select','yesno'],
-    ['boneMissingPct','Bone % missing','text'] ]},
-  { title: 'Condition & Chemicals', fields: [
-    ['preDepositionalPct','Pre-dep % complete','text'],
-    ['preDepositionalCondition','Pre-dep condition','multi','preCond'],
-    ['currentCondition','Current condition','multi','curCond'],
-    ['chemicalsApplied','Chemicals used','multi','chems'],
-    ['internStaff','Intern / staff','text'] ]},
+
+// Field tuple: [key, label, type, enumKeyOr'radial'point, radialSlot]
+// Radial tuples carry the point letter + slot: ['__radAm1','Radial A — Stake N (cm)','radial','A','m1']
+const _ID     = { title: 'Identification', fields: [
+  ['catalogNumber','Specimen #','text'], ['scientificName','Taxon','text'], ['verbatimElement','Element','text'] ]};
+const _DISC   = { title: 'Discovery', fields: [
+  ['eventDate','Date discovered','text'], ['recordedBy','Discovered by','text'],
+  ['inSitu','In situ','select','yesno'], ['approxPositionKnown','Approx. position known','select','yesno'],
+  ['boneMissingPct','Bone % missing','text'] ]};
+const _COND   = { title: 'Condition & Chemicals', fields: [
+  ['preDepositionalPct','Pre-dep % complete','text'],
+  ['preDepositionalCondition','Pre-dep condition','multi','preCond'],
+  ['currentCondition','Current condition','multi','curCond'],
+  ['chemicalsApplied','Chemicals used','multi','chems'],
+  ['internStaff','Intern / staff','text'] ]};
+const _REMOVAL = { title: 'Removal & Storage', fields: [
+  ['dateCollected','Date collected','text'], ['collectedBy','Collected by','text'],
+  ['removalMethod','Removal method','text'], ['tempStorageLocation','Temp storage location','text'],
+  ['staffSignature','Staff signature','text'] ]};
+const _NOTES  = { title: 'Notes', fields: [
+  ['occurrenceRemarks','Comments','textarea'], ['cameraNumber','Camera #','text'], ['pictureNumber','Picture #','text'] ]};
+
+// Fragment sheet (2-up): Radial Point A only
+const INTAKE_GROUPS_FRAGMENT = [
+  _ID, _DISC, _COND,
   { title: 'Measurements', fields: [
     ['orientationDegrees','Orientation °','number'], ['plungeDegrees','Plunge °','number'],
     ['maxLengthCm','Max length (cm)','number'], ['midWidthCm','Width mid (cm)','number'],
-    ['__radN','Radial — Stake N (cm)','radial'], ['__radS','Radial — Stake S (cm)','radial'] ]},
-  { title: 'Removal & Storage', fields: [
-    ['dateCollected','Date collected','text'], ['collectedBy','Collected by','text'],
-    ['removalMethod','Removal method','text'], ['tempStorageLocation','Temp storage location','text'],
-    ['staffSignature','Staff signature','text'] ]},
-  { title: 'Notes', fields: [
-    ['occurrenceRemarks','Comments','textarea'], ['cameraNumber','Camera #','text'], ['pictureNumber','Picture #','text'] ]}
+    ['__radAm1','Radial A — Stake N (cm)','radial','A','m1'], ['__radAm2','Radial A — Stake S (cm)','radial','A','m2'] ]},
+  _REMOVAL, _NOTES
 ];
 
-const intakeState = { inited: false, selectedId: null, current: null };
+// Field sheet (1-up, full page): Radial Points A–D + extra field-logistics
+const INTAKE_GROUPS_FIELD = [
+  _ID, _DISC, _COND,
+  { title: 'Measurements', fields: [
+    ['orientationDegrees','Orientation °','number'], ['plungeDegrees','Plunge °','number'],
+    ['maxLengthCm','Max length (cm)','number'], ['midWidthCm','Width mid (cm)','number'],
+    ['__radAm1','Radial A — Stake 1 (cm)','radial','A','m1'], ['__radAm2','Radial A — Stake 2 (cm)','radial','A','m2'],
+    ['__radBm1','Radial B — Stake 1 (cm)','radial','B','m1'], ['__radBm2','Radial B — Stake 2 (cm)','radial','B','m2'],
+    ['__radCm1','Radial C — Stake 1 (cm)','radial','C','m1'], ['__radCm2','Radial C — Stake 2 (cm)','radial','C','m2'],
+    ['__radDm1','Radial D — Stake 1 (cm)','radial','D','m1'], ['__radDm2','Radial D — Stake 2 (cm)','radial','D','m2'] ]},
+  { title: 'Field details', fields: [
+    ['geologicRemarks','Geologic info','textarea'], ['associationsRemarks','Associations / articulations','textarea'],
+    ['jacketIncludedNumbers','Jacket included #s','text'], ['readyForRemoval','Ready for removal','select','yesno'],
+    ['dateMapped','Date mapped','text'], ['mappedBy','Mapped by','text'],
+    ['placedOnMapBy','Placed on map by','text'], ['placedOnMapDate','Placed on map date','text'] ]},
+  _REMOVAL, _NOTES
+];
+
+// Field Specimen Sheet Journal (up to 4-up): a work-log record
+const INTAKE_GROUPS_JOURNAL = [
+  _ID,
+  { title: 'Journal entry', fields: [
+    ['eventDate','Date','text'], ['internStaff','Intern / staff','text'], ['programFamily','Program family','text'],
+    ['fieldIdChanged','Field ID changed','select','yesno'], ['currentCondition','Current condition','multi','curCond'],
+    ['boneMissingPct','Bone % missing','text'] ]},
+  { title: 'Work done', fields: [ ['workDoneToFossil','Work done to fossil','textarea'] ]}
+];
+
+function intakeGroupsFor(t) {
+  return t === 'journal' ? INTAKE_GROUPS_JOURNAL : t === 'field' ? INTAKE_GROUPS_FIELD : INTAKE_GROUPS_FRAGMENT;
+}
+
+const intakeState = { inited: false, selectedId: null, current: null, working: null,
+                      pageIndex: 0, specIndex: 0, pageUrls: {}, fileUrl: null };
 let intakeSaveTimer = null, intakeDirtyFlag = false;
 
 function setIntakeSaveStatus(txt) {
@@ -1363,10 +1413,13 @@ function intakeDirty() {
   clearTimeout(intakeSaveTimer);
   intakeSaveTimer = setTimeout(intakeAutosave, 1200);
 }
+function intakeHasPages() {
+  return !!(intakeState.working && Array.isArray(intakeState.working.pages) && intakeState.working.pages.length);
+}
 async function intakeAutosave() {
   clearTimeout(intakeSaveTimer);
-  if (!intakeState.selectedId || !(intakeState.working && intakeState.working.specimens && intakeState.working.specimens.length)) return;
-  intakeState.working.specimens = intakeGatherSpecimens();
+  if (!intakeState.selectedId || !intakeHasPages()) return;
+  intakeGatherActivePage();      // capture the DOM edits of the page on screen
   setIntakeSaveStatus('Saving…');
   const jobId = intakeState.selectedId;
   const { error } = await db.from('intake_jobs').update({ reviewed: intakeState.working }).eq('id', jobId);
@@ -1376,7 +1429,7 @@ async function intakeAutosave() {
 // Persist any pending edits to the CURRENT job before switching away.
 async function intakeFlushPending() {
   clearTimeout(intakeSaveTimer);
-  if (intakeDirtyFlag && intakeState.selectedId && intakeState.working && intakeState.working.specimens && intakeState.working.specimens.length) {
+  if (intakeDirtyFlag && intakeState.selectedId && intakeHasPages()) {
     await intakeAutosave();
   }
 }
@@ -1415,7 +1468,10 @@ async function intakeLoadQueue() {
   if (error) { wrap.innerHTML = `<div class="intake-empty" style="color:var(--danger)">${error.message}</div>`; return; }
   if (!data.length) { wrap.innerHTML = '<div class="intake-empty">No sheets.</div>'; return; }
   wrap.innerHTML = data.map(j => {
-    const specs = (j.reviewed || j.extracted)?.specimens?.length || 0;
+    const src = j.reviewed || j.extracted;
+    const specs = src?.pages
+      ? src.pages.reduce((n, p) => n + (p.specimens?.length || 0), 0)
+      : (src?.specimens?.length || 0);
     return `<div class="intake-qcard${j.id === intakeState.selectedId ? ' selected' : ''}" onclick="intakeSelect('${j.id}')">
       <div class="intake-qcard-name">${j.filename || j.id.slice(0,8)}</div>
       <div class="intake-qcard-meta">
@@ -1427,17 +1483,43 @@ async function intakeLoadQueue() {
   }).join('');
 }
 
+// Canonicalize any job payload into { pages: [ {index, sheetType, imagePath, specimens[]} ] }.
+// Legacy flat jobs ({specimens:[…]}) become a single page so nothing breaks.
+function intakeNormalize(data) {
+  const clone = data ? JSON.parse(JSON.stringify(data)) : null;
+  if (clone && Array.isArray(clone.pages)) {
+    clone.pages.forEach((p, i) => { p.index = p.index || i + 1; p.specimens = p.specimens || []; });
+    return clone;
+  }
+  const specimens = (clone && clone.specimens) ? clone.specimens : [];
+  return { pages: [ { index: 1, sheetType: (clone && clone.sheetType) || null, imagePath: null, specimens } ] };
+}
+
 async function intakeSelect(id) {
   await intakeFlushPending();      // save edits to the previously-open sheet first
   intakeDirtyFlag = false;
   intakeState.selectedId = id;
+  intakeState.pageIndex = 0;
+  intakeState.specIndex = 0;
   const { data: job, error } = await db.from('intake_jobs').select('*').eq('id', id).single();
   if (error || !job) { showToast('Could not load sheet', true); return; }
   intakeState.current = job;
-  // load the working copy (human edits) or fall back to the raw extraction
-  intakeState.working = JSON.parse(JSON.stringify(job.reviewed || job.extracted || { specimens: [] }));
-  const { data: signed } = await db.storage.from('intake').createSignedUrl(job.storage_path, 3600);
-  renderIntakeReview(job, signed?.signedUrl || null);
+  intakeState.working = intakeNormalize(job.reviewed || job.extracted);
+
+  // Signed URLs for the original upload + each rendered page image.
+  intakeState.pageUrls = {}; intakeState.fileUrl = null;
+  const pagePaths = intakeState.working.pages.map(p => p.imagePath).filter(Boolean);
+  const paths = [job.storage_path, ...pagePaths];
+  try {
+    const { data: signed } = await db.storage.from('intake').createSignedUrls(paths, 3600);
+    (signed || []).forEach(s => {
+      if (!s.signedUrl) return;
+      if (s.path === job.storage_path) intakeState.fileUrl = s.signedUrl;
+      else intakeState.pageUrls[s.path] = s.signedUrl;
+    });
+  } catch (e) { /* fall back to no preview */ }
+
+  renderIntakeReview(job);
   intakeLoadQueue();
 }
 
@@ -1450,7 +1532,7 @@ function intakeFieldHtml(si, spec, f) {
   const [key, label, type, enumKey] = f;
   const id = `if-${si}-${key}`;
   let val, confKey = key;
-  if (type === 'radial') { val = spec.radialMeasurements?.A?.[key === '__radN' ? 'm1' : 'm2'] ?? ''; confKey = 'radialMeasurements'; }
+  if (type === 'radial') { const pt = f[3], slot = f[4]; val = spec.radialMeasurements?.[pt]?.[slot] ?? ''; confKey = 'radialMeasurements'; }
   else val = spec[key];
   const conf = intakeConf(spec, confKey);
   const low = conf !== null && conf < 0.6;
@@ -1485,67 +1567,133 @@ function intakeScanHtml(job, url) {
   return `<img src="${url}" alt="scan" onclick="specLightbox('${url}')">`;
 }
 
-function renderIntakeReview(job, imgUrl) {
-  const specs = intakeState.working.specimens || [];
-  const el = document.getElementById('intake-review');
-  const forms = specs.length ? specs.map((s, si) => `
-    <div class="intake-spec">
-      <div class="intake-spec-head">Specimen ${si + 1}${s.catalogNumber ? ' — ' + s.catalogNumber : ''}</div>
-      <div style="padding:2px 0">
-        ${INTAKE_GROUPS.map(g => `<div class="intake-fields">${g.fields.map(f => intakeFieldHtml(si, s, f)).join('')}</div>`).join('<div style="height:4px"></div>')}
-      </div>
-    </div>`).join('')
-    : `<div class="intake-empty">${job.status === 'queued' ? 'Waiting for extraction…' : job.status === 'error' ? ('Extraction error: ' + (job.error||'unknown')) : 'No specimens extracted from this sheet.'}</div>`;
+function intakeActivePage() {
+  const pages = intakeState.working && intakeState.working.pages;
+  return pages ? pages[intakeState.pageIndex] : null;
+}
 
+// The scan image for the active page: prefer the worker-rendered page PNG;
+// fall back to the original uploaded file (legacy jobs without page images).
+function intakePageScanHtml(job, page) {
+  const url = page && page.imagePath ? intakeState.pageUrls[page.imagePath] : null;
+  if (url) return `<img src="${url}" alt="page ${page.index}" onclick="specLightbox('${url}')">`;
+  return intakeScanHtml(job, intakeState.fileUrl);
+}
+
+function renderIntakeReview(job) {
+  const el = document.getElementById('intake-review');
+  const pages = (intakeState.working && intakeState.working.pages) || [];
   const committed = (job.committed_ids || []).length;
-  el.innerHTML = `
+  const totalSpecs = pages.reduce((n, p) => n + (p.specimens?.length || 0), 0);
+
+  const head = (extra) => `
     <div class="intake-review-head">
       <div>
         <div class="intake-review-title">${job.filename || 'Sheet'}</div>
-        <div class="intake-review-sub"><span class="intake-stat ${job.status}">${job.status}</span> ${committed ? `· ${committed} committed` : ''}</div>
+        <div class="intake-review-sub"><span class="intake-stat ${job.status}">${job.status}</span>${committed ? ` · ${committed} committed` : ''}${extra || ''}</div>
       </div>
       <div class="intake-actions">
         <span id="intake-savestatus" class="intake-savestatus"></span>
-        <button class="btn btn-primary btn-sm" onclick="intakeCommit()" ${specs.length && job.status !== 'committed' ? '' : 'disabled'}>Commit ${specs.length || ''} to collection</button>
+        <button class="btn btn-primary btn-sm" onclick="intakeCommit()" ${totalSpecs && job.status !== 'committed' ? '' : 'disabled'}>Commit ${totalSpecs || ''} to collection</button>
       </div>
-    </div>
-    <div class="intake-split">
-      <div class="intake-scan">${intakeScanHtml(job, imgUrl)}</div>
-      <div class="intake-forms" oninput="intakeDirty()" onchange="intakeDirty()">${forms}</div>
     </div>`;
+
+  if (!totalSpecs) {
+    el.innerHTML = head() + `<div class="intake-empty">${job.status === 'queued' || job.status === 'extracting' ? 'Waiting for extraction…' : job.status === 'error' ? ('Extraction error: ' + (job.error || 'unknown')) : 'No specimens extracted from this sheet.'}</div>`;
+    setIntakeSaveStatus(''); return;
+  }
+
+  const pi = Math.min(intakeState.pageIndex || 0, pages.length - 1);
+  intakeState.pageIndex = pi;
+  const page = pages[pi];
+  const groups = intakeGroupsFor(page.sheetType);
+  const specs = page.specimens || [];
+  const si = Math.min(intakeState.specIndex || 0, Math.max(0, specs.length - 1));
+  intakeState.specIndex = si;
+
+  const pagebar = pages.length > 1 ? `<div class="intake-pagebar">` + pages.map((p, i) =>
+    `<button class="intake-pagechip${i === pi ? ' active' : ''}" onclick="intakeGoPage(${i})">Pg ${p.index || i + 1}${p.sheetType ? ` · ${p.sheetType}` : ''} · ${(p.specimens?.length || 0)}</button>`).join('') + `</div>` : '';
+
+  const tabs = `<div class="intake-spectabs">`
+    + specs.map((s, j) => `<button class="intake-spectab${j === si ? ' active' : ''}" onclick="intakeGoSpec(${j})">${j + 1}${s.catalogNumber ? ' · ' + s.catalogNumber : ''}</button>`).join('')
+    + `<button class="intake-spectab add" onclick="intakeAddSpecimen()">+ Add</button></div>`;
+
+  const panes = specs.map((s, j) => `
+    <div class="intake-spec-pane" data-si="${j}" style="display:${j === si ? 'block' : 'none'}">
+      <div class="intake-spec-head">Specimen ${j + 1}${s.catalogNumber ? ' — ' + s.catalogNumber : ''}
+        <button class="intake-spec-del" onclick="intakeRemoveSpecimen(${j})" title="Remove this specimen from the sheet">Remove</button></div>
+      ${groups.map(g => `<div class="intake-fields">${g.fields.map(f => intakeFieldHtml(j, s, f)).join('')}</div>`).join('<div style="height:4px"></div>')}
+    </div>`).join('');
+
+  el.innerHTML = head(` · ${totalSpecs} specimen${totalSpecs !== 1 ? 's' : ''}${pages.length > 1 ? ` · ${pages.length} pages` : ''}`)
+    + pagebar
+    + `<div class="intake-split">
+        <div class="intake-scan">${intakePageScanHtml(job, page)}</div>
+        <div class="intake-forms" oninput="intakeDirty()" onchange="intakeDirty()">${tabs}${panes}</div>
+      </div>`;
   setIntakeSaveStatus('');
 }
 
-// Read the (possibly edited) values back out of the form
-function intakeGatherSpecimens() {
-  const specs = intakeState.working.specimens || [];
-  return specs.map((orig, si) => {
+// Switch the visible specimen tab (pure show/hide — all panes stay in the DOM).
+function intakeGoSpec(j) {
+  intakeState.specIndex = j;
+  document.querySelectorAll('#intake-review .intake-spec-pane').forEach(p => { p.style.display = (+p.dataset.si === j) ? 'block' : 'none'; });
+  document.querySelectorAll('#intake-review .intake-spectab').forEach((b, i) => { if (!b.classList.contains('add')) b.classList.toggle('active', i === j); });
+}
+// Switch pages — persist the current page's edits first, then re-render.
+function intakeGoPage(i) {
+  intakeGatherActivePage();
+  intakeState.pageIndex = i;
+  intakeState.specIndex = 0;
+  renderIntakeReview(intakeState.current);
+}
+function intakeAddSpecimen() {
+  intakeGatherActivePage();
+  const p = intakeActivePage(); if (!p) return;
+  p.specimens = p.specimens || [];
+  p.specimens.push({});
+  intakeState.specIndex = p.specimens.length - 1;
+  intakeDirty();
+  renderIntakeReview(intakeState.current);
+}
+function intakeRemoveSpecimen(j) {
+  if (!confirm('Remove this specimen from the sheet? This does not delete anything already committed to the collection.')) return;
+  intakeGatherActivePage();
+  const p = intakeActivePage(); if (!p) return;
+  p.specimens.splice(j, 1);
+  intakeState.specIndex = Math.max(0, Math.min(j, p.specimens.length - 1));
+  intakeDirty();
+  renderIntakeReview(intakeState.current);
+}
+
+// Read the (possibly edited) values of the ACTIVE page back out of the DOM
+// and write them into working.pages[pageIndex].specimens.
+function intakeGatherActivePage() {
+  const page = intakeActivePage();
+  if (!page) return [];
+  const groups = intakeGroupsFor(page.sheetType);
+  const specs = page.specimens || [];
+  page.specimens = specs.map((orig, si) => {
     const out = { ...orig };
-    INTAKE_GROUPS.forEach(g => g.fields.forEach(f => {
+    groups.forEach(g => g.fields.forEach(f => {
       const [key, , type, enumKey] = f;
       if (type === 'multi') {
         out[key] = INTAKE_ENUMS[enumKey].filter(o => document.getElementById(`ifm-${si}-${key}-${o.replace(/\s/g,'_')}`)?.checked);
         if (!out[key].length) out[key] = null;
       } else if (type === 'radial') {
+        const pt = f[3], slot = f[4];
         const v = document.getElementById(`if-${si}-${key}`)?.value.trim() || null;
-        out.radialMeasurements = out.radialMeasurements || { A: {} };
-        out.radialMeasurements.A = out.radialMeasurements.A || {};
-        out.radialMeasurements.A[key === '__radN' ? 'm1' : 'm2'] = v;
+        out.radialMeasurements = out.radialMeasurements || {};
+        out.radialMeasurements[pt] = out.radialMeasurements[pt] || {};
+        out.radialMeasurements[pt][slot] = v;
       } else {
         const raw = document.getElementById(`if-${si}-${key}`)?.value;
-        out[key] = (raw === undefined || raw.trim() === '') ? null : (type === 'number' ? parseFloat(raw) : raw.trim());
+        if (raw !== undefined) out[key] = (raw.trim() === '') ? null : (type === 'number' ? parseFloat(raw) : raw.trim());
       }
     }));
     return out;
   });
-}
-
-async function intakeSaveDraft() {
-  const specimens = intakeGatherSpecimens();
-  intakeState.working.specimens = specimens;
-  const { error } = await db.from('intake_jobs').update({ reviewed: intakeState.working }).eq('id', intakeState.selectedId);
-  if (error) { showToast(error.message, true); return; }
-  showToast('Corrections saved');
+  return page.specimens;
 }
 
 // Convert an "M/D/YY" (or similar) sheet date to ISO YYYY-MM-DD; null if unparseable.
@@ -1565,8 +1713,24 @@ function intakeToOccurrence(s) {
   const g = genus ? specsState.generaByName[genus] : null;
   const num = v => (v === '' || v == null || isNaN(parseFloat(v))) ? null : parseFloat(v);
   const arr = v => (Array.isArray(v) && v.length) ? v : null;
-  const rad = s.radialMeasurements?.A;
-  const remarks = [s.occurrenceRemarks, s.cameraNumber ? 'Camera: ' + s.cameraNumber : '', s.pictureNumber ? 'Picture: ' + s.pictureNumber : ''].filter(Boolean).join(' · ') || null;
+  // Radial Points A–D (Field sheets can have all four)
+  const rm = s.radialMeasurements || {};
+  const radial = ['A','B','C','D'].map(L => { const p = rm[L]; return (p && (p.m1 || p.m2)) ? { label: L, m1: p.m1 || null, m2: p.m2 || null } : null; }).filter(Boolean);
+  // Associations / jacket contents → associated_occurrences
+  const assoc = [s.associationsRemarks, s.jacketIncludedNumbers ? ('In jacket: ' + s.jacketIncludedNumbers) : ''].filter(Boolean).join(' · ') || null;
+  // Everything without a dedicated column is preserved as labeled notes in occurrence_remarks.
+  const map = (s.dateMapped || s.mappedBy) ? ('Mapped ' + [s.dateMapped, s.mappedBy ? 'by ' + s.mappedBy : ''].filter(Boolean).join(' ')) : '';
+  const placed = (s.placedOnMapBy || s.placedOnMapDate) ? ('Placed on map ' + [s.placedOnMapDate, s.placedOnMapBy ? 'by ' + s.placedOnMapBy : ''].filter(Boolean).join(' ')) : '';
+  const remarks = [
+    s.occurrenceRemarks,
+    s.cameraNumber ? 'Camera: ' + s.cameraNumber : '',
+    s.pictureNumber ? 'Picture: ' + s.pictureNumber : '',
+    s.programFamily ? 'Program family: ' + s.programFamily : '',
+    s.fieldIdChanged ? 'Field ID changed: ' + s.fieldIdChanged : '',
+    s.workDoneToFossil ? 'Work done to fossil: ' + s.workDoneToFossil : '',
+    s.readyForRemoval ? 'Ready for removal: ' + s.readyForRemoval : '',
+    map, placed
+  ].filter(Boolean).join(' · ') || null;
   return {
     id, occurrence_id: id,
     institution_code: 'WDC', collection_code: 'FIELD', basis_of_record: 'FossilSpecimen',
@@ -1589,8 +1753,10 @@ function intakeToOccurrence(s) {
     plunge_degrees: num(s.plungeDegrees),
     max_length_cm: num(s.maxLengthCm),
     mid_width_cm: num(s.midWidthCm),
-    radial_measurements: rad && (rad.m1 || rad.m2) ? [{ label: 'A', m1: rad.m1 || null, m2: rad.m2 || null }] : null,
+    radial_measurements: radial.length ? radial : null,
     occurrence_remarks: remarks,
+    associated_occurrences: assoc,
+    lithologic_description: s.geologicRemarks || null,
     date_collected: intakeIsoDate(s.dateCollected),
     collected_by: s.collectedBy || null,
     removal_method: s.removalMethod || null,
@@ -1603,13 +1769,15 @@ function intakeToOccurrence(s) {
 
 async function intakeCommit() {
   clearTimeout(intakeSaveTimer); intakeDirtyFlag = false;
-  const specimens = intakeGatherSpecimens();
-  intakeState.working.specimens = specimens;
-  if (!specimens.length) return;
-  if (!confirm(`Create ${specimens.length} specimen record${specimens.length !== 1 ? 's' : ''} in the collection from this sheet?`)) return;
+  intakeGatherActivePage();
+  // Flatten every specimen across every page of this upload.
+  const flat = [];
+  (intakeState.working.pages || []).forEach(p => (p.specimens || []).forEach(s => flat.push(s)));
+  if (!flat.length) return;
+  if (!confirm(`Create ${flat.length} specimen record${flat.length !== 1 ? 's' : ''} in the collection from this sheet?`)) return;
 
   const ids = [], failures = [];
-  for (const s of specimens) {
+  for (const s of flat) {
     const occ = intakeToOccurrence(s);
     // best-effort: link to a site by the catalog-number prefix (e.g. TYA-F26-015 → TYA)
     const prefix = (s.catalogNumber || '').split('-')[0];
