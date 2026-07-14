@@ -436,8 +436,9 @@ async function redirectAfterDelay() {
   const { data: profile } = await db
     .from('profiles').select('role').eq('id', currentUser.id).single();
 
-  const dest = profile?.role === 'admin' ? ADMIN_URL : FIELD_URL;
-  const appName = profile?.role === 'admin' ? 'Admin Console' : 'Field App';
+  const adminApp = profile?.role === 'admin' || profile?.role === 'management';
+  const dest = adminApp ? ADMIN_URL : FIELD_URL;
+  const appName = adminApp ? 'Admin Console' : 'Field App';
 
   document.getElementById('redirect-note').textContent =
     `Redirecting to ${appName} in a moment…`;
