@@ -208,6 +208,23 @@ let currentUser    = null;
 let currentToken   = null;  // access token kept for direct API calls
 let flow           = 'setup';  // 'setup' (invite/new account) | 'reset' (password recovery)
 
+// The most reliable signal: Supabase fires PASSWORD_RECOVERY when it detects a
+// recovery link in the URL — for BOTH the hash-token flow (backup link) and the
+// PKCE ?code= flow (the emailed link). The `type=` URL param is only present in
+// some of those, so we key off this event instead.
+db.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    flow = 'reset';
+    if (session) { currentUser = session.user; currentToken = session.access_token; }
+    // Reveal the (password-only) form immediately, regardless of init() timing.
+    document.getElementById('loading')?.classList.add('hidden');
+    const card = document.getElementById('main-card');
+    if (card) card.style.display = 'block';
+    try { history.replaceState(null, '', window.location.pathname); } catch (_) {}
+    applyFlow();
+  }
+});
+
 // ── INIT ──────────────────────────────────────────────────────
 async function init() {
   // Parse tokens from URL hash (magic link)
@@ -216,10 +233,11 @@ async function init() {
   const accessToken  = params.get('access_token');
   const refreshToken = params.get('refresh_token');
 
-  // Supabase tells us which kind of link this is: 'recovery' = password reset,
-  // 'invite'/'signup' = new account. Falls back to setup if unknown.
+  // Secondary signal (the primary is the PASSWORD_RECOVERY event above): some links
+  // also carry type=recovery in the hash/query. Never downgrade a reset already set
+  // by the event — only upgrade setup → reset.
   const linkType = params.get('type') || new URLSearchParams(window.location.search).get('type') || '';
-  flow = (linkType === 'recovery') ? 'reset' : 'setup';
+  if (linkType === 'recovery') flow = 'reset';
 
   let session = null;
 
