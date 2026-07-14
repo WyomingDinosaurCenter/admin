@@ -194,6 +194,28 @@
     <div class="redirect-note" id="redirect-note"></div>
   </div>
 
+  <!-- Expired / used-link screen: self-service request for a fresh link -->
+  <div id="expired-screen" style="display:none">
+    <div class="card-header">
+      <div class="org">Wyoming Dinosaur Center</div>
+      <div class="title">Link expired</div>
+      <div class="sub">This link has expired or was already used.</div>
+    </div>
+    <div class="card-body">
+      <div class="error-box" id="expired-error"></div>
+      <p style="font-size:.88rem;color:var(--text-dim);line-height:1.5;margin-bottom:16px">
+        Enter your email and we'll send you a fresh link. Reset links are single-use and
+        expire after about an hour, so open the new one soon.
+      </p>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="expired-email"
+               placeholder="you@wyomingdinosaurcenter.org" autocomplete="email">
+      </div>
+      <button class="btn btn-primary" id="expired-btn" onclick="requestNewLink()">Send me a new link</button>
+    </div>
+  </div>
+
 </div>
 
 <script>
@@ -202,7 +224,20 @@ const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 const FIELD_URL     = 'https://wyomingdinosaurcenter.github.io/field/';
 const ADMIN_URL     = 'https://wyomingdinosaurcenter.github.io/admin/';
 
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+// IMPORTANT: isolate this page's auth from the admin/field apps. Without this, an
+// admin already signed in on this browser leaves a session in shared storage, and the
+// onboarding page could act on THAT account instead of the invited/recovering user —
+// e.g. setting the new password on the wrong account. persistSession:false means we
+// neither read nor write the shared session; we only ever use the session that the
+// invite/recovery link itself establishes (in memory). storageKey is a further guard.
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: true,
+    storageKey: 'wdc-onboard-scratch'
+  }
+});
 
 let currentUser    = null;
 let currentToken   = null;  // access token kept for direct API calls
@@ -221,14 +256,53 @@ db.auth.onAuthStateChange((event, session) => {
   if (event === 'PASSWORD_RECOVERY') {
     flow = 'reset';
     if (session) { currentUser = session.user; currentToken = session.access_token; }
-    // Reveal the (password-only) form immediately, regardless of init() timing.
-    document.getElementById('loading')?.classList.add('hidden');
-    const card = document.getElementById('main-card');
-    if (card) card.style.display = 'block';
     try { history.replaceState(null, '', window.location.pathname); } catch (_) {}
+    showForm();      // reveal the (password-only) form regardless of init() timing
     applyFlow();
   }
 });
+
+// ── Screen switching ──────────────────────────────────────────
+function showForm() {
+  document.getElementById('loading')?.classList.add('hidden');
+  const card = document.getElementById('main-card'); if (card) card.style.display = 'block';
+  document.getElementById('form-screen').style.display = 'block';
+  document.getElementById('expired-screen').style.display = 'none';
+  document.getElementById('success-screen').style.display = 'none';
+}
+function showExpired() {
+  document.getElementById('loading')?.classList.add('hidden');
+  const card = document.getElementById('main-card'); if (card) card.style.display = 'block';
+  document.getElementById('form-screen').style.display = 'none';
+  document.getElementById('success-screen').style.display = 'none';
+  document.getElementById('expired-screen').style.display = 'block';
+}
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+}
+
+// Self-service: send the person a fresh recovery link (no admin needed).
+// resetPasswordForEmail is a public auth endpoint and returns success whether or not
+// the address exists (anti-enumeration), so we always show the same confirmation.
+async function requestNewLink() {
+  const email = document.getElementById('expired-email').value.trim();
+  const btn   = document.getElementById('expired-btn');
+  const err   = document.getElementById('expired-error');
+  err.style.display = 'none';
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+    err.textContent = 'Please enter a valid email address.'; err.style.display = 'block'; return;
+  }
+  btn.innerHTML = '<span class="spinner"></span> Sending…'; btn.disabled = true;
+  const redirectTo = location.origin + location.pathname + '?mode=recovery';
+  try { await db.auth.resetPasswordForEmail(email, { redirectTo }); } catch (_) { /* shown same either way */ }
+  document.getElementById('expired-screen').innerHTML =
+    '<div class="card-header"><div class="org">Wyoming Dinosaur Center</div>' +
+    '<div class="title">Check your email</div></div>' +
+    '<div class="card-body" style="text-align:center">' +
+    '<div style="font-size:2.6rem;margin:6px 0">📬</div>' +
+    '<p style="font-size:.9rem;line-height:1.5;color:var(--text-dim)">If an account exists for <strong>' +
+    escapeHtml(email) + '</strong>, a fresh password-reset link is on its way. It expires in about an hour — open it soon, in your normal browser.</p></div>';
+}
 
 // ── INIT ──────────────────────────────────────────────────────
 async function init() {
@@ -261,15 +335,11 @@ async function init() {
     currentUser  = session.user;
     currentToken = session.access_token;
     history.replaceState(null, '', window.location.pathname);
-
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('main-card').style.display = 'block';
-
+    showForm();
     applyFlow();
     await prefillProfile();
   } else {
-    document.getElementById('loading').textContent =
-      'This link has expired or has already been used. Please contact your administrator for a new link.';
+    showExpired();
   }
 }
 
