@@ -130,37 +130,39 @@
 
       <div class="error-box" id="error-box"></div>
 
-      <div class="section-label">Your Name</div>
-      <div class="form-group">
-        <label class="form-label">Full Name <span class="req">*</span></label>
-        <input class="form-input" type="text" id="full-name" placeholder="Jane Smith" autocomplete="name">
-      </div>
-
-      <div class="section-label">Contact</div>
-      <div class="form-group">
-        <label class="form-label">Phone Number</label>
-        <input class="form-input" type="tel" id="phone" placeholder="(307) 555-0100" autocomplete="tel">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Street Address</label>
-        <input class="form-input" type="text" id="address-street" placeholder="123 Main St" autocomplete="address-line1">
-      </div>
-      <div class="form-row">
+      <div id="profile-fields">
+        <div class="section-label">Your Name</div>
         <div class="form-group">
-          <label class="form-label">City</label>
-          <input class="form-input" type="text" id="address-city" placeholder="Thermopolis" autocomplete="address-level2">
+          <label class="form-label">Full Name <span class="req">*</span></label>
+          <input class="form-input" type="text" id="full-name" placeholder="Jane Smith" autocomplete="name">
         </div>
-        <div class="form-group" style="max-width:80px">
-          <label class="form-label">State</label>
-          <input class="form-input" type="text" id="address-state" placeholder="WY" maxlength="2" autocomplete="address-level1">
+
+        <div class="section-label">Contact</div>
+        <div class="form-group">
+          <label class="form-label">Phone Number</label>
+          <input class="form-input" type="tel" id="phone" placeholder="(307) 555-0100" autocomplete="tel">
         </div>
-        <div class="form-group" style="max-width:100px">
-          <label class="form-label">ZIP</label>
-          <input class="form-input" type="text" id="address-zip" placeholder="82443" maxlength="10" autocomplete="postal-code">
+        <div class="form-group">
+          <label class="form-label">Street Address</label>
+          <input class="form-input" type="text" id="address-street" placeholder="123 Main St" autocomplete="address-line1">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">City</label>
+            <input class="form-input" type="text" id="address-city" placeholder="Thermopolis" autocomplete="address-level2">
+          </div>
+          <div class="form-group" style="max-width:80px">
+            <label class="form-label">State</label>
+            <input class="form-input" type="text" id="address-state" placeholder="WY" maxlength="2" autocomplete="address-level1">
+          </div>
+          <div class="form-group" style="max-width:100px">
+            <label class="form-label">ZIP</label>
+            <input class="form-input" type="text" id="address-zip" placeholder="82443" maxlength="10" autocomplete="postal-code">
+          </div>
         </div>
       </div>
 
-      <div class="section-label">Set Your Password</div>
+      <div class="section-label" id="password-label">Set Your Password</div>
       <div class="form-group">
         <label class="form-label">Password <span class="req">*</span></label>
         <input class="form-input" type="password" id="password" placeholder="At least 8 characters"
@@ -201,6 +203,7 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 let currentUser    = null;
 let currentToken   = null;  // access token kept for direct API calls
+let flow           = 'setup';  // 'setup' (invite/new account) | 'reset' (password recovery)
 
 // ── INIT ──────────────────────────────────────────────────────
 async function init() {
@@ -209,6 +212,11 @@ async function init() {
   const params = new URLSearchParams(hash);
   const accessToken  = params.get('access_token');
   const refreshToken = params.get('refresh_token');
+
+  // Supabase tells us which kind of link this is: 'recovery' = password reset,
+  // 'invite'/'signup' = new account. Falls back to setup if unknown.
+  const linkType = params.get('type') || new URLSearchParams(window.location.search).get('type') || '';
+  flow = (linkType === 'recovery') ? 'reset' : 'setup';
 
   let session = null;
 
@@ -231,14 +239,40 @@ async function init() {
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('main-card').style.display = 'block';
 
-    const meta = session.user.user_metadata;
-    if (meta?.full_name && meta.full_name !== session.user.email) {
-      document.getElementById('full-name').value = meta.full_name;
-    }
+    applyFlow();
+    await prefillProfile();
   } else {
     document.getElementById('loading').textContent =
       'This link has expired or has already been used. Please contact your administrator for a new link.';
   }
+}
+
+// Adjust the form for a password reset vs a new-account setup.
+function applyFlow() {
+  const title = document.querySelector('.card-header .title');
+  const sub   = document.querySelector('.card-header .sub');
+  if (flow === 'reset') {
+    document.getElementById('profile-fields').style.display = 'none';   // password only
+    document.getElementById('password-label').textContent = 'Choose a New Password';
+    if (title) title.textContent = 'Reset Your Password';
+    if (sub)   sub.textContent = 'Enter a new password to finish signing in.';
+    document.getElementById('submit-btn').textContent = 'Update Password';
+  }
+}
+
+// Prefill any details we already have so nothing shows blank (setup flow).
+async function prefillProfile() {
+  if (flow !== 'setup') return;
+  let prof = null;
+  try {
+    const { data } = await db.from('profiles')
+      .select('full_name, phone, mailing_address').eq('id', currentUser.id).single();
+    prof = data;
+  } catch (_) { /* profile may not exist yet */ }
+  const meta = currentUser.user_metadata || {};
+  const name = (prof && prof.full_name) || (meta.full_name && meta.full_name !== currentUser.email ? meta.full_name : '');
+  if (name) document.getElementById('full-name').value = name;
+  if (prof && prof.phone) document.getElementById('phone').value = prof.phone;
 }
 
 init();
@@ -269,23 +303,42 @@ function checkStrength() {
 
 // ── SUBMIT ────────────────────────────────────────────────────
 async function doSubmit() {
+  const password  = document.getElementById('password').value;
+  const confirm   = document.getElementById('password-confirm').value;
+  const btn       = document.getElementById('submit-btn');
+
+  document.getElementById('error-box').style.display = 'none';
+
+  // Password is required in both flows.
+  if (password.length < 8) return showError('Password must be at least 8 characters.');
+  if (password !== confirm) return showError('Passwords do not match.');
+
+  // ── RESET flow: only set the new password, leave the profile untouched ──
+  if (flow === 'reset') {
+    btn.innerHTML = '<span class="spinner"></span> Updating…';
+    btn.disabled = true;
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${currentToken}`, 'apikey': SUPABASE_ANON },
+      body: JSON.stringify({ password })
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      showError(e.msg || e.message || `Auth error ${res.status}`);
+      reset(); return;
+    }
+    showSuccess(); return;
+  }
+
+  // ── SETUP flow: collect profile details + set password ──
   const fullName  = document.getElementById('full-name').value.trim();
   const phone     = document.getElementById('phone').value.trim();
   const street    = document.getElementById('address-street').value.trim();
   const city      = document.getElementById('address-city').value.trim();
   const state     = document.getElementById('address-state').value.trim().toUpperCase();
   const zip       = document.getElementById('address-zip').value.trim();
-  const password  = document.getElementById('password').value;
-  const confirm   = document.getElementById('password-confirm').value;
-  const errEl     = document.getElementById('error-box');
-  const btn       = document.getElementById('submit-btn');
 
-  errEl.style.display = 'none';
-
-  // Validate
   if (!fullName) return showError('Please enter your full name.');
-  if (password.length < 8) return showError('Password must be at least 8 characters.');
-  if (password !== confirm) return showError('Passwords do not match.');
 
   btn.innerHTML = '<span class="spinner"></span> Saving…';
   btn.disabled = true;
@@ -315,7 +368,11 @@ async function doSubmit() {
     reset(); return;
   }
 
-  // 2. Update profile via direct REST call
+  // 2. Update profile — only send fields the user actually provided, so we never
+  //    overwrite existing data with blanks.
+  const patch = { full_name: fullName };
+  if (phone) patch.phone = phone;
+  if (mailingAddress) patch.mailing_address = mailingAddress;
   const profileRes = await fetch(
     `${SUPABASE_URL}/rest/v1/profiles?id=eq.${currentUser.id}`, {
     method: 'PATCH',
@@ -325,7 +382,7 @@ async function doSubmit() {
       'apikey': SUPABASE_ANON,
       'Prefer': 'return=minimal'
     },
-    body: JSON.stringify({ full_name: fullName, phone, mailing_address: mailingAddress })
+    body: JSON.stringify(patch)
   });
   if (!profileRes.ok) {
     const e = await profileRes.json().catch(() => ({}));
@@ -338,6 +395,10 @@ async function doSubmit() {
 }
 
 function showSuccess() {
+  document.querySelector('.success-title').textContent =
+    flow === 'reset' ? 'Password updated!' : "You're all set!";
+  document.querySelector('.success-sub').innerHTML =
+    (flow === 'reset' ? 'Your password has been updated.' : 'Your account has been created.') + '<br>Taking you to the app…';
   document.getElementById('form-screen').style.display = 'none';
   document.getElementById('success-screen').style.display = 'block';
 
