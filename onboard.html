@@ -206,7 +206,12 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 let currentUser    = null;
 let currentToken   = null;  // access token kept for direct API calls
-let flow           = 'setup';  // 'setup' (invite/new account) | 'reset' (password recovery)
+
+// Determine the flow from OUR OWN query marker, read synchronously at load before the
+// Supabase client can rewrite the URL. This is deterministic across every auth flow
+// (implicit hash tokens OR PKCE ?code=), unlike Supabase's `type`, which lives in the
+// hash and is often cleared before we can read it. ?mode=recovery → password-only form.
+let flow = new URLSearchParams(window.location.search).get('mode') === 'recovery' ? 'reset' : 'setup';
 
 // The most reliable signal: Supabase fires PASSWORD_RECOVERY when it detects a
 // recovery link in the URL — for BOTH the hash-token flow (backup link) and the
