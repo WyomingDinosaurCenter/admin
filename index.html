@@ -715,6 +715,7 @@
           </select>
           <label class="sites-toggle"><input type="checkbox" id="specs-f-needscat" onchange="specsLoad()"> Needs cataloging</label>
           <span style="margin-left:auto;display:flex;gap:8px">
+            <button class="btn btn-gold btn-sm" onclick="specsNew()">+ New specimen</button>
             <button class="btn btn-ghost btn-sm" onclick="specsLoad()">↻ Refresh</button>
             <button class="btn btn-ghost btn-sm" onclick="specsExportCsv()">⇩ Export CSV</button>
           </span>
@@ -1827,6 +1828,12 @@ const SPEC_SECTIONS = [
   { title: 'Location', fields: [
     ['verbatim_locality','Verbatim locality','text'], ['decimal_latitude','Latitude','number'], ['decimal_longitude','Longitude','number'], ['verbatim_coordinates','Verbatim coordinates','text']
   ]},
+  { title: 'Acquisition & Provenance', fields: [
+    ['acquisition_method','How acquired','select',['','field collection','purchase','donation','exchange / trade','bequest','transfer','unknown']],
+    ['acquisition_source','Source (donor / dealer / auction)','text'],
+    ['acquisition_date','Acquisition date','date'],
+    ['provenance_remarks','Provenance notes (original locality, prior history)','textarea']
+  ]},
   { title: 'Geological Context', fields: [
     ['formation','Formation','text'], ['member','Member','text'], ['bed','Bed','text'],
     ['earliest_period_or_lowest_system','Earliest period','text'], ['earliest_epoch_or_lowest_series','Earliest epoch','text'],
@@ -1966,6 +1973,49 @@ function renderSpecTable(container, rows, append) {
   }
 }
 
+// Suggest the next WDC-<year>-### catalog number (max existing for this year + 1).
+async function specsNextCatalog() {
+  const year = new Date().getFullYear();
+  const prefix = `WDC-${year}-`;
+  let max = 0;
+  const { data } = await db.from('occurrences').select('"catalogNumber"').ilike('"catalogNumber"', `${prefix}%`);
+  (data || []).forEach(r => {
+    const cn = String(r.catalogNumber || '');
+    const m = cn.match(/-(\d+)$/);
+    if (m && cn.startsWith(prefix)) max = Math.max(max, parseInt(m[1], 10));
+  });
+  return prefix + String(max + 1).padStart(3, '0');
+}
+
+// ── Create a specimen manually (e.g. acquired: purchased / donated / traded) ──
+// Auto-generates the next catalog number but lets you override it; the number must
+// be unique (the DB enforces this), so a collision re-prompts.
+async function specsNew() {
+  let cn = await specsNextCatalog();     // editable default
+  while (true) {
+    const num = prompt('New specimen catalog number\n(auto-filled — edit to override):', cn);
+    if (num === null) return;            // cancelled
+    cn = num.trim();
+    if (!cn) { showToast('Enter a catalog number', true); continue; }
+    const rec = {
+      "catalogNumber": cn,
+      institution_code: 'WDC',
+      basis_of_record: 'FossilSpecimen',
+      collection_code: 'CATALOG',        // acquired items are cataloged directly, not field-staged
+      created_by: currentUser?.id || null,
+      sync_status: 'synced'
+    };
+    const { data, error } = await db.from('occurrences').insert(rec).select('id').single();
+    if (!error) {
+      showToast('Specimen created — add its details below');
+      specsOpen(data.id);                // no dig site; use the Acquisition & Provenance section
+      return;
+    }
+    if (/duplicate|unique/i.test(error.message)) { showToast(`${cn} already exists — choose another.`, true); continue; }
+    showToast(error.message, true); return;
+  }
+}
+
 // ── Detail view ───────────────────────────────────────────────
 async function specsOpen(id) {
   specsState.currentId = id;
@@ -2087,7 +2137,7 @@ function renderSpecDetail(occ) {
       const elx = document.getElementById(`sd2-${col}`);
       if (!elx) return;
       let v = occ[col];
-      if (col === 'eventDate' || col === 'date_collected' || col === 'collection_date' || col === 'date_mapped' || col === 'physical_map_date') v = v ? String(v).slice(0,10) : '';
+      if (col === 'eventDate' || col === 'date_collected' || col === 'collection_date' || col === 'date_mapped' || col === 'physical_map_date' || col === 'acquisition_date') v = v ? String(v).slice(0,10) : '';
       elx.value = (v === null || v === undefined) ? '' : v;
     });
     (sec.arrays || []).forEach(([col]) => {
